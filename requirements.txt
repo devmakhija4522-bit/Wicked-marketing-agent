@@ -7,3 +7,5 @@ google-api-python-client==2.131.0
 praw==7.7.1
 google-generativeai==0.7.2
 pydantic==2.7.1
+
+google-genai==1.16.0
