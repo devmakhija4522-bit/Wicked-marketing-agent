@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
@@ -40,6 +40,7 @@ export const api = {
   gmmResearch: (data) => apiRequest('/api/gmm/research', { method: 'POST', body: data }),
   gmmGenerate: (data) => apiRequest('/api/gmm/generate', { method: 'POST', body: data }),
   scrapeBrand: (data) => apiRequest('/api/gmm/scrape-brand', { method: 'POST', body: data }),
+  generateGrestLinkedInDraft: () => apiRequest('/api/grest/linkedin-draft', { method: 'POST' }),
 
   // Vault
   saveToVault: (data) => apiRequest('/api/vault/save', { method: 'POST', body: data }),

@@ -68,6 +68,28 @@ pipeline_runs: dict[str, PipelineRun] = {}
 
 # ── App Lifespan ──────────────────────────────────────────────
 
+def run_daily_linkedin_draft():
+    """Job to generate LinkedIn draft and save to file daily at 12 PM."""
+    logger.info("Running scheduled daily Grest LinkedIn draft generation...")
+    try:
+        from agents.grest_linkedin_agent import GrestLinkedInAgent
+        agent = GrestLinkedInAgent(client_id="grest")
+        result = agent.run()
+        
+        # Ensure output directory exists
+        output_dir = Path(__file__).resolve().parent / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save to [date]-draft.md
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        filepath = output_dir / f"{date_str}-draft.md"
+        
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(result)
+        logger.info(f"Successfully saved daily draft to {filepath}")
+    except Exception as e:
+        logger.error(f"Failed to generate daily LinkedIn draft: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
@@ -84,9 +106,23 @@ async def lifespan(app: FastAPI):
         logger.warning("⚠️  GEMINI_API_KEY not set! The system will not work without it.")
         logger.warning("⚠️  Copy .env.example to .env and set your Gemini API key.")
 
+    # Start the APScheduler
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(run_daily_linkedin_draft, 'cron', hour=12, minute=0)
+        scheduler.start()
+        logger.info("✅ APScheduler started: Grest LinkedIn job scheduled for 12:00 PM daily.")
+    except ImportError:
+        logger.warning("⚠️  APScheduler not installed. Daily tasks will not run. Run 'pip install apscheduler'.")
+        scheduler = None
+
     yield
 
     logger.info("WICKED Backend shutting down.")
+    if scheduler:
+        scheduler.shutdown()
+
 
 
 # ── FastAPI App ───────────────────────────────────────────────
@@ -599,6 +635,21 @@ async def get_content_templates():
 
 # ── Import for script-writer endpoint ─────────────────────────
 from models import ContentConcept
+from agents.grest_linkedin_agent import GrestLinkedInAgent
+
+@app.post("/api/grest/linkedin-draft", tags=["Grest"])
+async def grest_linkedin_draft():
+    """Run the Grest LinkedIn news scanning and drafting agent."""
+    try:
+        agent = GrestLinkedInAgent(client_id="grest") # Default to grest client if it exists, or it just uses the system prompt
+        result = agent.run()
+        return {"draft": result}
+    except Exception as e:
+        import traceback
+        with open("error.log", "a") as f:
+            f.write(traceback.format_exc() + "\n")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ══════════════════════════════════════════════════════════════
 #  RUN SERVER

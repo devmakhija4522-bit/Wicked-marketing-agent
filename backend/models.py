@@ -233,7 +233,7 @@ class ClientProfile(BaseModel):
 
 class GMMResearchRequest(BaseModel):
     client_id: str
-    product_focus: str
+    product_focus: Optional[str] = "General Brand Marketing"
     viral_url: Optional[str] = ""
 
 class GMMResearchResponse(BaseModel):
@@ -242,7 +242,7 @@ class GMMResearchResponse(BaseModel):
 
 class GMMGenerateRequest(BaseModel):
     client_id: str
-    product_focus: str
+    product_focus: Optional[str] = "General Brand Marketing"
     news: str
     hooks: str
 

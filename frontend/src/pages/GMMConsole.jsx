@@ -30,7 +30,7 @@ export default function GMMConsole() {
   }, [clientId, clients, activeClient, switchClient]);
 
   const handleStartResearch = async () => {
-    if (!productFocus) return;
+    if (!productFocus && !viralUrl) return;
     setIsResearching(true);
     try {
       const data = await api.gmmResearch({
@@ -134,7 +134,7 @@ export default function GMMConsole() {
             <button 
               className="btn btn-primary btn-large" 
               onClick={handleStartResearch}
-              disabled={isResearching || !productFocus}
+              disabled={isResearching || (!productFocus && !viralUrl)}
             >
               {isResearching ? 'Agent is Researching...' : 'Start AI Research'}
             </button>

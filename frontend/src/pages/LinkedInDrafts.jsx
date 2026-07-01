@@ -3,24 +3,28 @@ import { api } from '../utils/api.js';
 import './LinkedInDrafts.css';
 
 export default function LinkedInDrafts() {
-  const [drafts, setDrafts] = useState([]);
+  const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(false);
-  const [frequency, setFrequency] = useState('2');
 
   const handleGenerate = async () => {
     setLoading(true);
+    setDraft('');
     try {
-      const data = await api.generateLinkedInDrafts(3);
-      if (data) setDrafts(data);
+      const data = await api.generateGrestLinkedInDraft();
+      if (data && data.draft) {
+        setDraft(data.draft);
+      }
     } catch (e) {
       console.error(e);
+      alert('Failed to generate draft. Check console for details.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopy = (text) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(draft);
+    alert('Copied to clipboard!');
   };
 
   return (
@@ -28,69 +32,52 @@ export default function LinkedInDrafts() {
       <div className="page-header">
         <div className="linkedin-header-row">
           <div>
-            <h1><span className="gradient-text">LinkedIn</span> Drafts</h1>
-            <p>Automated B2B/B2C content drafted from the latest Apple News.</p>
+            <h1><span className="gradient-text">Grest LinkedIn</span> Agent</h1>
+            <p>Automated B2B/B2C content drafted from the absolute latest Apple News.</p>
           </div>
           <div className="linkedin-controls">
-            <div className="frequency-selector">
-              <label>Run Frequency (per week):</label>
-              <select value={frequency} onChange={(e) => setFrequency(e.target.value)}>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="4">4</option>
-                <option value="7">Everyday</option>
-              </select>
-            </div>
             <button className="btn btn-primary" onClick={handleGenerate} disabled={loading}>
-              {loading ? <span className="btn-spinner" /> : '✨'} Fetch News & Draft
+              {loading ? 'Agent is Hunting News...' : '✨ Fetch News & Draft'}
             </button>
           </div>
         </div>
       </div>
 
-      {loading && (
-        <div className="drafts-loading">
-          <div className="skeleton skeleton-text" />
-          <div className="skeleton skeleton-text" />
-          <div className="skeleton skeleton-text" />
-        </div>
-      )}
+      <div className="draft-container" style={{ marginTop: '2rem' }}>
+        {loading && (
+          <div className="drafts-loading" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="skeleton skeleton-text" style={{ width: '100%', height: '40px' }} />
+            <div className="skeleton skeleton-text" style={{ width: '80%', height: '20px' }} />
+            <div className="skeleton skeleton-text" style={{ width: '90%', height: '20px' }} />
+            <div className="skeleton skeleton-text" style={{ width: '100%', height: '150px' }} />
+          </div>
+        )}
 
-      {!loading && drafts.length > 0 && (
-        <div className="drafts-grid">
-          {drafts.map((draft, i) => (
-            <div key={i} className="draft-card glass">
-              <div className="draft-meta">
-                <span className="badge badge-crimson">Apple News</span>
-                <a href={draft.source_url} target="_blank" rel="noreferrer" className="source-link">
-                  {draft.news_title}
-                </a>
-              </div>
-              <div className="draft-content">
-                <p>{draft.draft_text}</p>
-              </div>
-              <div className="draft-footer">
-                <div className="hashtags">
-                  {draft.suggested_hashtags.map((tag, j) => (
-                    <span key={j} className="hashtag">#{tag}</span>
-                  ))}
-                </div>
-                <button className="btn btn-secondary btn-sm" onClick={() => handleCopy(draft.draft_text)}>
-                  📋 Copy
-                </button>
-              </div>
+        {!loading && draft && (
+          <div className="draft-card glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h3>Latest Draft</h3>
+            <textarea 
+              className="glass-input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              style={{ minHeight: '400px', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-primary)' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={handleCopy}>
+                📋 Copy to Clipboard
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
 
-      {!loading && drafts.length === 0 && (
-        <div className="empty-state">
-          <span className="empty-state-icon">💼</span>
-          <h3>No Drafts Yet</h3>
-          <p>Click "Fetch News & Draft" to pull the latest Apple news and generate LinkedIn posts.</p>
-        </div>
-      )}
+        {!loading && !draft && (
+          <div className="empty-state glass" style={{ padding: '4rem 2rem', textAlign: 'center', borderRadius: '12px' }}>
+            <span className="empty-state-icon" style={{ fontSize: '3rem', display: 'block', marginBottom: '1rem' }}>💼</span>
+            <h3>No Drafts Yet</h3>
+            <p style={{ color: 'var(--text-muted)' }}>Click "Fetch News & Draft" to pull the latest Apple news and generate LinkedIn hooks in your voice.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

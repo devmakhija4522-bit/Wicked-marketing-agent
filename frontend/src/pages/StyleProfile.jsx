@@ -13,7 +13,8 @@ export default function StyleProfile() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('http://localhost:8000/api/style-profile', {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_BASE}/api/style-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ samples: [samples] })

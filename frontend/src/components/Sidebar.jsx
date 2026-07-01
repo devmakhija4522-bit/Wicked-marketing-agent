@@ -11,12 +11,7 @@ const agencyItems = [
 
 const workspaceItems = [
   { path: '/trends', label: 'Trends', emoji: '🔥' },
-  { path: '/instagram', label: 'Instagram', emoji: '📱' },
   { path: '/linkedin', label: 'LinkedIn', emoji: '💼' },
-  { path: '/analytics', label: 'Analytics', emoji: '📊' },
-  { path: '/lab', label: 'Content Lab', emoji: '⚗️' },
-  { path: '/vault', label: 'Script Vault', emoji: '📦' },
-  { path: '/style', label: 'Style Profile', emoji: '✨' },
 ];
 
 export default function Sidebar() {

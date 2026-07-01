@@ -334,3 +334,700 @@ Traceback (most recent call last):
     raise RuntimeError(f"Gemini API error: {e}")
 RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
 
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash-latest is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\nPlease retry in 9.614058717s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerMinute-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '9s'}]}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\nPlease retry in 9.614058717s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerMinute-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.0-flash'}}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '9s'}]}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 535, in gmm_scrape_brand
+    result = scraper.run(website_url=request.website_url)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_brand_scraper.py", line 29, in run
+    response = self.llm.generate_json(
+        prompt=prompt,
+        system_prompt="You are an expert brand analyst. Output strictly valid JSON."
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 62, in generate_json
+    text_response = self.generate(json_prompt, system_prompt, temperature, use_search)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ModelService.ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 13.011077787s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-2.5-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '13s'}]}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 555, in gmm_research
+    news_output = news_agent.run(request.product_focus)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_news_scout.py", line 53, in run
+    response = self.llm.generate(
+        prompt=prompt,
+        system_prompt="You are a meticulous marketing researcher. Always use search to verify real-time facts.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 13.011077787s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-2.5-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '13s'}]}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 13.787994393s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '13s'}]}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 555, in gmm_research
+    news_output = news_agent.run(request.product_focus)
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\gmm_news_scout.py", line 53, in run
+    response = self.llm.generate(
+        prompt=prompt,
+        system_prompt="You are a meticulous marketing researcher. Always use search to verify real-time facts.",
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 13.787994393s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '13s'}]}}
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 43, in generate
+    response = self.client.models.generate_content(
+        model=settings.gemini_model,
+        contents=full_prompt,
+        config=config,
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 6526, in generate_content
+    response = self._generate_content(
+        model=model, contents=contents, config=parsed_config_to_call
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\models.py", line 4954, in _generate_content
+    response = self._api_client.request(
+        'post', path, request_dict, http_options
+    )
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1618, in request
+    response = self._request(http_request, http_options, stream=False)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1411, in _request
+    return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 470, in __call__
+    do = self.iter(retry_state=retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 371, in iter
+    result = action(retry_state)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 413, in exc_check
+    raise retry_exc.reraise()
+          ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 184, in reraise
+    raise self.last_attempt.result()
+          ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 443, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\concurrent\futures\_base.py", line 395, in __get_result
+    raise self._exception
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\tenacity\__init__.py", line 473, in __call__
+    result = fn(*args, **kwargs)
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\_api_client.py", line 1388, in _request_once
+    errors.APIError.raise_for_response(response)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 155, in raise_for_response
+    cls.raise_error(response.status_code, response_json, response)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\makhi\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\google\genai\errors.py", line 184, in raise_error
+    raise ClientError(status_code, response_json, response)
+google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 30.549360807s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '30s'}]}}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\main.py", line 645, in grest_linkedin_draft
+    result = agent.run()
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\agents\grest_linkedin_agent.py", line 58, in run
+    response = self.llm.generate(
+        prompt=prompt,
+        system_prompt=system_prompt,
+        use_search=True
+    )
+  File "C:\Users\makhi\OneDrive\Desktop\WICKED- Marketing agent\backend\services\llm_service.py", line 51, in generate
+    raise RuntimeError(f"Gemini API error: {e}")
+RuntimeError: Gemini API error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 30.549360807s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '30s'}]}}
+
