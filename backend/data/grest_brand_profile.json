@@ -1,0 +1,98 @@
+{
+  "brand_name": "Grest",
+  "tagline": "Premium Apple. Smart Price.",
+  "founded": 2018,
+  "founders": ["Nitin Goyal", "Shrey Sardana"],
+  "hq": "Gurugram, Haryana, India",
+  "website": "https://grest.in",
+  "category": "Certified Refurbished Apple Electronics",
+  "products": {
+    "iPhones": {
+      "range": "iPhone 11 to iPhone 15 Pro Max",
+      "price_range": "₹18,999 - ₹89,999",
+      "savings": "30-50% vs new"
+    },
+    "MacBooks": {
+      "range": "MacBook Air M1 to MacBook Pro M3",
+      "price_range": "₹44,999 - ₹1,49,999",
+      "savings": "25-40% vs new"
+    },
+    "iPads": {
+      "range": "iPad 9th Gen to iPad Pro M2",
+      "price_range": "₹22,999 - ₹74,999",
+      "savings": "25-45% vs new"
+    },
+    "AirPods": {
+      "range": "AirPods 2nd Gen to AirPods Pro 2",
+      "price_range": "₹4,999 - ₹14,999",
+      "savings": "30-50% vs new"
+    }
+  },
+  "stores": {
+    "count": 6,
+    "locations": [
+      "Connaught Place, New Delhi",
+      "Lajpat Nagar, New Delhi",
+      "Rajouri Garden, New Delhi",
+      "Sector 14, Gurugram",
+      "Sector 29, Gurugram",
+      "Noida Sector 18"
+    ],
+    "region": "Delhi NCR"
+  },
+  "usps": [
+    {
+      "title": "50+ Quality Checks",
+      "detail": "Every device goes through 50+ rigorous quality checkpoints — battery, display, speakers, cameras, buttons, sensors, water resistance seals. Nothing leaves without passing ALL checks."
+    },
+    {
+      "title": "6-12 Month Warranty",
+      "detail": "Full warranty coverage on every device. Not some shady verbal promise — proper documented warranty with service support."
+    },
+    {
+      "title": "Government IMEI Verification",
+      "detail": "Partnership with C-DOT and Sanchar Saathi for official government IMEI verification. Your device is 100% legit, verified by the Indian government itself."
+    },
+    {
+      "title": "Premium at Smart Price",
+      "detail": "Get the exact same Apple experience — same iOS, same ecosystem, same build quality — at 30-50% less. The phone doesn't know it's refurbished."
+    },
+    {
+      "title": "Physical Stores",
+      "detail": "6 stores across Delhi NCR where you can touch, feel, and test before buying. Not some random Instagram seller — walk into a proper store."
+    }
+  ],
+  "target_audience": {
+    "primary": "18-35 year old Indians who want Apple but find new prices too high",
+    "secondary": "Parents buying first premium phone for college-going kids",
+    "tertiary": "Professionals upgrading who want value for money",
+    "psychographic": "Aspirational, value-conscious, tech-savvy, social-media-active, peer-influenced"
+  },
+  "brand_voice": {
+    "tone": "Confident, relatable, slightly cheeky — like a smart friend who found a hack",
+    "language": "Hinglish (Hindi + English mix), casual, conversational",
+    "avoid": [
+      "Sounding desperate or salesy",
+      "Words like 'second-hand', 'used', 'purana'",
+      "Comparing negatively with competitors",
+      "Making claims we can't back up",
+      "Being preachy or lecture-y",
+      "Generic marketing speak"
+    ],
+    "embrace": [
+      "Storytelling over selling",
+      "Relatable scenarios from Indian daily life",
+      "Subtle flex energy — 'smart choice, not compromise'",
+      "Humor that lands with Gen Z and millennials",
+      "Real talk about money and aspirations",
+      "Confidence without arrogance"
+    ]
+  },
+  "content_philosophy": {
+    "core_belief": "Every piece of content should tell a story first. The brand should feel like a natural part of that story, not the reason the story exists.",
+    "inspiration": "Think Tanmay Bhat doing a brand deal — the content is genuinely entertaining, and the brand mention feels earned, not forced.",
+    "ratio": "80% entertainment/value, 20% brand",
+    "formats": ["Instagram Reels (30-90 seconds)", "YouTube Shorts (up to 60 seconds)"],
+    "hooks": "First 2 seconds must create curiosity or pattern-interrupt. No slow intros."
+  }
+}

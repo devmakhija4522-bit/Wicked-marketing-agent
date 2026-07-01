@@ -1,0 +1,31 @@
+{
+  "storytelling_frameworks": [
+    {
+      "id": "relatable_struggle",
+      "name": "The Relatable Struggle & Smart Fix",
+      "structure": [
+        "Hook: State a common frustration (0-3s)",
+        "Build: Escalate the frustration (3-10s)",
+        "Twist/Brand Moment: Introduce the brand as the smart solution (5-10s)",
+        "CTA: Clear next step (3s)"
+      ],
+      "example": "Hook: 'Tired of problem X?' → Build: Show how problem X ruins the day → Twist: 'But then I found Brand Y' → Brand: Explain how Brand Y fixes it → CTA: 'Link in bio to solve it today'"
+    },
+    {
+      "id": "insider_secret",
+      "name": "The Industry Secret",
+      "structure": [
+        "Hook: 'What they don't want you to know about [Topic]' (0-3s)",
+        "Build: Explain the common misconception (3-15s)",
+        "Reveal/Brand Moment: Position the brand as the insider move (5-10s)",
+        "CTA (3s)"
+      ],
+      "example": "Hook: 'The biggest lie about X...' → Build: Explain the lie → Reveal: 'That's why smart people use Brand Y' → CTA: 'Try it yourself'"
+    }
+  ],
+  "visual_hooks": {
+    "split_screen": "Compare the old way vs the brand way side-by-side",
+    "pov": "Point of view showing the user experiencing the problem, then the relief",
+    "rapid_cut": "Fast cuts of the problem, stopping abruptly on the solution"
+  }
+}

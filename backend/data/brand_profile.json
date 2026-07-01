@@ -1,0 +1,27 @@
+{
+  "brand_name": "Generic Brand",
+  "tagline": "Your Tagline Here",
+  "category": "Your Category",
+  "website": "https://example.com",
+  "target_audience": {
+    "primary": "Your primary audience",
+    "secondary": "Your secondary audience"
+  },
+  "usps": [
+    {
+      "title": "USP 1",
+      "detail": "Detail about USP 1"
+    }
+  ],
+  "brand_voice": {
+    "tone": "Professional yet approachable",
+    "language": "English",
+    "avoid": ["Jargon", "Overly salesy language"],
+    "embrace": ["Clarity", "Value-driven statements"]
+  },
+  "content_philosophy": {
+    "core_belief": "Provide value before asking for a sale.",
+    "ratio": "80% educational, 20% promotional",
+    "hooks": "Start with a strong question or bold statement."
+  }
+}
