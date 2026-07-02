@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # --- Required ---
     gemini_api_key: str = ""
 
+    # --- Database ---
+    mongodb_uri: str = ""
+
     # --- Optional: Trend Sources ---
     youtube_api_key: str = ""
     reddit_client_id: str = ""

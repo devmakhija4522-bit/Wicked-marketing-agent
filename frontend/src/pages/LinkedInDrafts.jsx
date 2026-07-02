@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { api } from '../utils/api.js';
 import './LinkedInDrafts.css';
 
 export default function LinkedInDrafts() {
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -72,13 +74,38 @@ export default function LinkedInDrafts() {
 
         {!loading && draft && (
           <div className="draft-card glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <h3>Latest Draft</h3>
-            <textarea 
-              className="glass-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              style={{ minHeight: '400px', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-primary)' }}
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3>Latest Draft</h3>
+              <button 
+                className="btn btn-sm btn-secondary" 
+                onClick={() => setEditMode(!editMode)}
+              >
+                {editMode ? '👀 Preview Mode' : '✏️ Edit Draft'}
+              </button>
+            </div>
+
+            {editMode ? (
+              <textarea 
+                className="glass-input"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                style={{ minHeight: '400px', fontSize: '1rem', lineHeight: '1.6', color: 'var(--text-primary)' }}
+              />
+            ) : (
+              <div className="linkedin-mockup-card">
+                <div className="linkedin-mockup-header">
+                  <div className="linkedin-avatar">G</div>
+                  <div className="linkedin-author-info">
+                    <span className="linkedin-author-name">Grest Marketing</span>
+                    <span className="linkedin-author-meta">Just now • 🌐</span>
+                  </div>
+                </div>
+                <div className="linkedin-mockup-body">
+                  <ReactMarkdown>{draft}</ReactMarkdown>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={handleCopy}>
                 📋 Copy to Clipboard

@@ -110,6 +110,12 @@ export const api = {
   // LinkedIn Drafts
   generateLinkedInDrafts: (limit = 3) =>
     apiRequest(`/linkedin/generate?limit=${limit}`, { method: 'GET' }),
+  
+  getLinkedInStorageDrafts: () =>
+    apiRequest('/api/linkedin/drafts', { method: 'GET' }),
+
+  getLinkedInStorageDraft: (draftId) =>
+    apiRequest(`/api/linkedin/drafts/${draftId}`, { method: 'GET' }),
 
   // Jobs
   getJobStatus: (jobId) =>

@@ -12,6 +12,7 @@ import Settings from './pages/Settings.jsx';
 import LinkedInDrafts from './pages/LinkedInDrafts.jsx';
 import InstagramScripts from './pages/InstagramScripts.jsx';
 import Analytics from './pages/Analytics.jsx';
+import LinkedInStorage from './pages/LinkedInStorage.jsx';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/gmm/:clientId" element={<GMMConsole />} />
             <Route path="/trends" element={<Trends />} />
           <Route path="/linkedin" element={<LinkedInDrafts />} />
+          <Route path="/linkedin-storage" element={<LinkedInStorage />} />
           <Route path="/instagram" element={<InstagramScripts />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/lab" element={<ContentLab />} />

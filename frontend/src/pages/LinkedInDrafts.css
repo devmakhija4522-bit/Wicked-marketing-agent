@@ -120,3 +120,90 @@
   flex-direction: column;
   gap: 20px;
 }
+
+/* Premium LinkedIn Mockup UI */
+.linkedin-mockup-card {
+  background: var(--surface-light);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  color: var(--text-primary);
+}
+
+.linkedin-mockup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.linkedin-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0A66C2 0%, #004182 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.linkedin-author-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.linkedin-author-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.linkedin-author-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.linkedin-mockup-body {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.linkedin-mockup-body p {
+  margin-bottom: 1rem;
+  white-space: pre-wrap;
+}
+
+.linkedin-mockup-body a {
+  color: var(--brand-primary);
+  text-decoration: underline;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+.linkedin-mockup-body p:last-child {
+  margin-bottom: 0;
+}
+
+.linkedin-mockup-body ul, .linkedin-mockup-body ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.linkedin-mockup-body li {
+  margin-bottom: 0.5rem;
+}
+
+.linkedin-mockup-body strong {
+  color: var(--text-primary);
+}

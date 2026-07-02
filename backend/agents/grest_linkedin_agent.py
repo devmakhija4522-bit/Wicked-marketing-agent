@@ -1,5 +1,6 @@
 import datetime
 from agents.base_agent import BaseAgent
+from services.news_service import NewsService
 
 class GrestLinkedInAgent(BaseAgent):
     """
@@ -10,7 +11,11 @@ class GrestLinkedInAgent(BaseAgent):
     agent_role = "Apple News LinkedIn Writer"
 
     def run(self) -> str:
-        self.logger.info("Scanning for latest Apple news for Grest LinkedIn...")
+        self.logger.info("Fetching real Apple news for Grest LinkedIn...")
+
+        # Fetch authentic, verified news to prevent hallucinated URLs
+        news_items = NewsService.fetch_apple_news(limit=3)
+        news_context = "\n\n".join([f"Headline: {n.title}\nLink: {n.url}\nSummary: {n.description}" for n in news_items])
 
         system_prompt = """
 You are Dev, a founder/operator at Grest (grest.in), a company that deals with refurbished/recommerce Apple devices in India.
@@ -39,7 +44,7 @@ THE CORE CONTENT ANGLE:
 Grest sells refurbished iPhones/Macs. People don't care about "refurbished" as a topic, but they DO care about new Apple product news. The job: take fresh Apple/iOS news and find the genuine resale/value/refurb angle — not a forced ad bolt-on.
 
 OUTPUT FORMAT:
-1. The News Item + Source Link (verified)
+1. The News Item + Source Link (verified) — You MUST format the link as a Markdown link like this: [Read Article](URL)
 2. The "Gap" — why this matters to a value-conscious tech buyer in India/Grest's audience
 3. 3-5 Hook Line Options (first lines only, following the Critical voice correction above)
 4. A loose structure Dev can build the post from, including a closing placeholder
@@ -48,16 +53,20 @@ NEVER write a complete, polished post. Leave it rough for Dev to finish.
 """
 
         prompt = f"""
-Search the web for the absolute latest news (last 7 days from today: {datetime.date.today()}) on: 
-new iPhone models, new Mac models, Apple price changes, iOS updates, or Apple trade-in news.
+I have fetched 3 extremely fresh and verified Apple news articles for you.
 
-Find one highly relevant piece of news, fetch its source, and output the draft exactly according to the Output Format.
-Remember to use your search capability to find REAL, current news. Do NOT hallucinate news.
+{news_context}
+
+CRITICAL RULES:
+- You MUST use the EXACT Link provided in the text above for each news item.
+- Output a SEPARATE draft for EACH of the 3 news items exactly according to the Output Format.
+
+Do not hallucinate any other news. Only use the 3 items provided above.
 """
 
         response = self.llm.generate(
             prompt=prompt,
             system_prompt=system_prompt,
-            use_search=True
+            use_search=False
         )
         return response

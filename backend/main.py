@@ -13,6 +13,8 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from pymongo import MongoClient
+import pymongo
 
 # Ensure the backend directory is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -62,10 +64,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger("wicked.server")
 
-# ── In-Memory Storage ─────────────────────────────────────────
+# ── In-Memory Storage & DB ────────────────────────────────────
 
 pipeline_runs: dict[str, PipelineRun] = {}
 background_jobs: dict[str, dict] = {}
+
+mongo_client = None
+db = None
+if settings.mongodb_uri:
+    try:
+        mongo_client = MongoClient(settings.mongodb_uri)
+        db = mongo_client["wicked_marketing"]
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {e}")
 
 # ── App Lifespan ──────────────────────────────────────────────
 
@@ -77,17 +88,26 @@ def run_daily_linkedin_draft():
         agent = GrestLinkedInAgent(client_id="grest")
         result = agent.run()
         
-        # Ensure output directory exists
-        output_dir = Path(__file__).resolve().parent / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save to [date]-draft.md
         date_str = datetime.now().strftime("%Y-%m-%d")
-        filepath = output_dir / f"{date_str}-draft.md"
+        draft_id = f"OUTPUT- {date_str}"
         
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write(result)
-        logger.info(f"Successfully saved daily draft to {filepath}")
+        if db is not None:
+            # Save to MongoDB
+            collection = db["linkedin_drafts"]
+            collection.update_one(
+                {"_id": draft_id},
+                {"$set": {"content": result, "created_at": datetime.utcnow()}},
+                upsert=True
+            )
+            logger.info(f"Successfully saved daily draft to MongoDB: {draft_id}")
+        else:
+            # Fallback to local files if no DB configured
+            output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            filepath = output_dir / f"{draft_id}.md"
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(result)
+            logger.info(f"Successfully saved daily draft to local file: {filepath}")
     except Exception as e:
         logger.error(f"Failed to generate daily LinkedIn draft: {e}")
 
@@ -661,7 +681,7 @@ async def get_content_templates():
 from models import ContentConcept
 from agents.grest_linkedin_agent import GrestLinkedInAgent
 
-@app.post("/api/grest/linkedin-draft", tags=["Grest"])
+@app.post("/api/grest/linkedin-draft", response_model=dict, tags=["Grest"])
 async def grest_linkedin_draft(background_tasks: BackgroundTasks):
     """Run the Grest LinkedIn news scanning and drafting agent."""
     job_id = uuid.uuid4().hex[:12]
@@ -672,6 +692,26 @@ async def grest_linkedin_draft(background_tasks: BackgroundTasks):
             background_jobs[job_id]["status"] = "running"
             agent = GrestLinkedInAgent(client_id="grest") # Default to grest client if it exists, or it just uses the system prompt
             result = agent.run()
+            
+            date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            draft_id = f"OUTPUT- {date_str}"
+            
+            if db is not None:
+                # Save to MongoDB
+                collection = db["linkedin_drafts"]
+                collection.update_one(
+                    {"_id": draft_id},
+                    {"$set": {"content": result, "created_at": datetime.utcnow()}},
+                    upsert=True
+                )
+            else:
+                # Fallback to local files
+                output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+                output_dir.mkdir(parents=True, exist_ok=True)
+                filepath = output_dir / f"{draft_id}.md"
+                with open(filepath, "w", encoding="utf-8") as f:
+                    f.write(result)
+
             background_jobs[job_id]["status"] = "completed"
             background_jobs[job_id]["result"] = {"draft": result}
         except Exception as e:
@@ -683,6 +723,42 @@ async def grest_linkedin_draft(background_tasks: BackgroundTasks):
 
     background_tasks.add_task(_do_draft)
     return {"job_id": job_id}
+
+
+@app.get("/api/linkedin/drafts", tags=["LinkedIn Storage"])
+async def list_linkedin_drafts():
+    drafts = []
+    
+    if db is not None:
+        collection = db["linkedin_drafts"]
+        for doc in collection.find({}, {"_id": 1}).sort("_id", pymongo.DESCENDING):
+            drafts.append(doc["_id"])
+    else:
+        output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+        if output_dir.exists():
+            for file in output_dir.glob("OUTPUT- *.md"):
+                drafts.append(file.name.replace(".md", ""))
+        drafts.sort(reverse=True)
+        
+    return {"drafts": drafts}
+
+
+@app.get("/api/linkedin/drafts/{draft_id}", tags=["LinkedIn Storage"])
+async def get_linkedin_draft(draft_id: str):
+    if db is not None:
+        collection = db["linkedin_drafts"]
+        doc = collection.find_one({"_id": draft_id})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Draft not found")
+        return {"content": doc.get("content", "")}
+    else:
+        output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+        filepath = output_dir / f"{draft_id}.md"
+        if not filepath.exists():
+            raise HTTPException(status_code=404, detail="Draft not found")
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"content": content}
 
 @app.get("/api/jobs/{job_id}", tags=["Jobs"])
 async def get_job_status(job_id: str):
