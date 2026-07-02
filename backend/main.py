@@ -396,6 +396,8 @@ async def run_content_strategist(
     return agent.run(insight_output, content_format, num_concepts)
 
 
+from models import ContentConcept
+
 @app.post("/agents/script-writer", response_model=ScriptWriterOutput, tags=["Agents"])
 async def run_script_writer(
     concept: ContentConcept,
@@ -405,7 +407,6 @@ async def run_script_writer(
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
 
-    from models import ContentConcept
     agent = ScriptWriterAgent()
     return agent.run(concept=concept, style_reference=style_reference)
 
