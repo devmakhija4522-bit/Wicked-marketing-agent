@@ -10,14 +10,31 @@ export default function LinkedInDrafts() {
     setLoading(true);
     setDraft('');
     try {
-      const data = await api.generateGrestLinkedInDraft();
-      if (data && data.draft) {
-        setDraft(data.draft);
-      }
+      const { job_id } = await api.generateGrestLinkedInDraft();
+      
+      const poll = setInterval(async () => {
+        try {
+          const status = await api.getJobStatus(job_id);
+          if (status.status === 'completed') {
+            clearInterval(poll);
+            if (status.result && status.result.draft) {
+              setDraft(status.result.draft);
+            }
+            setLoading(false);
+          } else if (status.status === 'failed') {
+            clearInterval(poll);
+            throw new Error(status.error);
+          }
+        } catch (err) {
+          clearInterval(poll);
+          console.error(err);
+          alert('Failed to generate draft. Check console for details.');
+          setLoading(false);
+        }
+      }, 3000);
     } catch (e) {
       console.error(e);
-      alert('Failed to generate draft. Check console for details.');
-    } finally {
+      alert('Failed to start draft generation. Check console for details.');
       setLoading(false);
     }
   };

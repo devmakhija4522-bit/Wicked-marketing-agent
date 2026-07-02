@@ -111,6 +111,10 @@ export const api = {
   generateLinkedInDrafts: (limit = 3) =>
     apiRequest(`/linkedin/generate?limit=${limit}`, { method: 'GET' }),
 
+  // Jobs
+  getJobStatus: (jobId) =>
+    apiRequest(`/api/jobs/${jobId}`, { method: 'GET' }),
+
   // Instagram Scripts
   generateInstagramScript: () =>
     apiRequest('/instagram/generate-script', { method: 'GET' }),

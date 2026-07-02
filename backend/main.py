@@ -65,6 +65,7 @@ logger = logging.getLogger("wicked.server")
 # ── In-Memory Storage ─────────────────────────────────────────
 
 pipeline_runs: dict[str, PipelineRun] = {}
+background_jobs: dict[str, dict] = {}
 
 # ── App Lifespan ──────────────────────────────────────────────
 
@@ -582,49 +583,66 @@ async def gmm_scrape_brand(request: GMMBrandScrapeRequest):
             f.write(traceback.format_exc() + "\n")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/gmm/research", response_model=GMMResearchResponse, tags=["GMM"])
-async def gmm_research(request: GMMResearchRequest):
+@app.post("/api/gmm/research", tags=["GMM"])
+async def gmm_research(request: GMMResearchRequest, background_tasks: BackgroundTasks):
     """Run Phase 1: Research (News and Hooks)."""
-    import asyncio
-    try:
-        news_agent = GMMNewsScoutAgent(client_id=request.client_id)
-        hook_agent = GMMHookScoutAgent(client_id=request.client_id)
-        
-        # Run agents concurrently without blocking the FastAPI event loop
-        news_output, hook_output = await asyncio.gather(
-            asyncio.to_thread(news_agent.run, request.product_focus),
-            asyncio.to_thread(hook_agent.run, request.product_focus, request.viral_url)
-        )
-        
-        return GMMResearchResponse(news=news_output, hooks=hook_output)
-    except Exception as e:
-        import traceback
-        with open("error.log", "a") as f:
-            f.write(traceback.format_exc() + "\n")
-        raise HTTPException(status_code=500, detail=str(e))
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
 
-@app.post("/api/gmm/generate", response_model=GMMGenerateResponse, tags=["GMM"])
-async def gmm_generate(request: GMMGenerateRequest):
-    """Run Phase 3: Omni-channel generation."""
-    try:
-        omni_agent = GMMOmniWriterAgent(client_id=request.client_id)
+    def _do_research():
         import asyncio
-        result = await asyncio.to_thread(
-            omni_agent.run,
-            request.product_focus,
-            request.news,
-            request.hooks
-        )
-        return GMMGenerateResponse(
-            instagram_reel=result.get("instagram_reel", ""),
-            youtube_video=result.get("youtube_video", ""),
-            facebook_post=result.get("facebook_post", "")
-        )
-    except Exception as e:
-        import traceback
-        with open("error.log", "a") as f:
-            f.write(traceback.format_exc() + "\n")
-        raise HTTPException(status_code=500, detail=str(e))
+        try:
+            background_jobs[job_id]["status"] = "running"
+            news_agent = GMMNewsScoutAgent(client_id=request.client_id)
+            hook_agent = GMMHookScoutAgent(client_id=request.client_id)
+            
+            # Create a new event loop for the background thread if needed, or just use sync
+            news_output = news_agent.run(request.product_focus)
+            hook_output = hook_agent.run(request.product_focus, request.viral_url)
+            
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = {"news": news_output, "hooks": hook_output}
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_research)
+    return {"job_id": job_id}
+
+@app.post("/api/gmm/generate", tags=["GMM"])
+async def gmm_generate(request: GMMGenerateRequest, background_tasks: BackgroundTasks):
+    """Run Phase 3: Omni-channel generation."""
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
+
+    def _do_generate():
+        try:
+            background_jobs[job_id]["status"] = "running"
+            omni_agent = GMMOmniWriterAgent(client_id=request.client_id)
+            result = omni_agent.run(
+                product_focus=request.product_focus,
+                news_context=request.news,
+                hook_context=request.hooks
+            )
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = {
+                "instagram_reel": result.get("instagram_reel", ""),
+                "youtube_video": result.get("youtube_video", ""),
+                "facebook_post": result.get("facebook_post", ""),
+                "image_prompt": result.get("image_prompt", "")
+            }
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_generate)
+    return {"job_id": job_id}
 
 @app.get("/brand/profile", tags=["Brand"])
 async def get_brand_profile():
@@ -643,19 +661,34 @@ from models import ContentConcept
 from agents.grest_linkedin_agent import GrestLinkedInAgent
 
 @app.post("/api/grest/linkedin-draft", tags=["Grest"])
-async def grest_linkedin_draft():
+async def grest_linkedin_draft(background_tasks: BackgroundTasks):
     """Run the Grest LinkedIn news scanning and drafting agent."""
-    try:
-        agent = GrestLinkedInAgent(client_id="grest") # Default to grest client if it exists, or it just uses the system prompt
-        import asyncio
-        result = await asyncio.to_thread(agent.run)
-        return {"draft": result}
-    except Exception as e:
-        import traceback
-        with open("error.log", "a") as f:
-            f.write(traceback.format_exc() + "\n")
-        from fastapi import HTTPException
-        raise HTTPException(status_code=500, detail=str(e))
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
+
+    def _do_draft():
+        try:
+            background_jobs[job_id]["status"] = "running"
+            agent = GrestLinkedInAgent(client_id="grest") # Default to grest client if it exists, or it just uses the system prompt
+            result = agent.run()
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = {"draft": result}
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_draft)
+    return {"job_id": job_id}
+
+@app.get("/api/jobs/{job_id}", tags=["Jobs"])
+async def get_job_status(job_id: str):
+    """Generic polling endpoint for background jobs."""
+    if job_id not in background_jobs:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return background_jobs[job_id]
 
 # ══════════════════════════════════════════════════════════════
 #  RUN SERVER

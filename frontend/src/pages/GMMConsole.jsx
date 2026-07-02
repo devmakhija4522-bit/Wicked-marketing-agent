@@ -33,17 +33,34 @@ export default function GMMConsole() {
     if (!productFocus && !viralUrl) return;
     setIsResearching(true);
     try {
-      const data = await api.gmmResearch({
+      const { job_id } = await api.gmmResearch({
         client_id: clientId,
         product_focus: productFocus,
         viral_url: viralUrl
       });
-      setResearchData({ news: data.news, hooks: data.hooks });
-      setStep(2);
+      
+      const poll = setInterval(async () => {
+        try {
+          const status = await api.getJobStatus(job_id);
+          if (status.status === 'completed') {
+            clearInterval(poll);
+            setResearchData({ news: status.result.news, hooks: status.result.hooks });
+            setStep(2);
+            setIsResearching(false);
+          } else if (status.status === 'failed') {
+            clearInterval(poll);
+            throw new Error(status.error);
+          }
+        } catch (err) {
+          clearInterval(poll);
+          console.error(err);
+          alert('Failed to run research. Check console for details.');
+          setIsResearching(false);
+        }
+      }, 3000);
     } catch (err) {
       console.error(err);
-      alert('Failed to run research. Check console for details.');
-    } finally {
+      alert('Failed to start research. Check console for details.');
       setIsResearching(false);
     }
   };
@@ -51,18 +68,35 @@ export default function GMMConsole() {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const data = await api.gmmGenerate({
+      const { job_id } = await api.gmmGenerate({
         client_id: clientId,
         product_focus: productFocus,
         news: researchData.news,
         hooks: researchData.hooks
       });
-      setGeneratedContent(data);
-      setStep(3);
+      
+      const poll = setInterval(async () => {
+        try {
+          const status = await api.getJobStatus(job_id);
+          if (status.status === 'completed') {
+            clearInterval(poll);
+            setGeneratedContent(status.result);
+            setStep(3);
+            setIsGenerating(false);
+          } else if (status.status === 'failed') {
+            clearInterval(poll);
+            throw new Error(status.error);
+          }
+        } catch (err) {
+          clearInterval(poll);
+          console.error(err);
+          alert('Failed to generate content. Check console for details.');
+          setIsGenerating(false);
+        }
+      }, 3000);
     } catch (err) {
       console.error(err);
-      alert('Failed to generate content. Check console for details.');
-    } finally {
+      alert('Failed to start generation. Check console for details.');
       setIsGenerating(false);
     }
   };
@@ -102,6 +136,16 @@ export default function GMMConsole() {
           <div className={`step ${step >= 3 ? 'active' : ''}`}>3. Output</div>
         </div>
       </header>
+
+      <div style={{ padding: '0 2rem 1rem 2rem', display: 'flex', gap: '1rem' }}>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => navigate('/linkedin')}
+          style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #004182 100%)', border: 'none' }}
+        >
+          <span style={{ marginRight: '0.5rem' }}>💼</span> Open LinkedIn Agent
+        </button>
+      </div>
 
       <div className="gmm-content">
         {step === 1 && (
