@@ -137,53 +137,20 @@ export default function GMMConsole() {
         </div>
       </header>
 
-      <div style={{ padding: '0 2rem 1rem 2rem', display: 'flex', gap: '1rem' }}>
-        <button 
-          className="btn btn-primary" 
-          onClick={() => navigate('/linkedin')}
-          style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #004182 100%)', border: 'none' }}
-        >
-          <span style={{ marginRight: '0.5rem' }}>💼</span> Open LinkedIn Agent
-        </button>
-      </div>
+      {activeClient && activeClient.brand_name && activeClient.brand_name.toLowerCase() === 'grest' && (
+        <div style={{ padding: '0 2rem 1rem 2rem', display: 'flex', gap: '1rem' }}>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => navigate('/linkedin')}
+            style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #004182 100%)', border: 'none' }}
+          >
+            <span style={{ marginRight: '0.5rem' }}>💼</span> Open LinkedIn Agent
+          </button>
+        </div>
+      )}
 
       <div className="gmm-content">
-        {step === 1 && (
-          <div className="gmm-panel fade-in">
-            <h2>Campaign Setup</h2>
-            <div className="form-group">
-              <label>Product or Campaign Focus *</label>
-              <input 
-                type="text" 
-                className="glass-input" 
-                placeholder="e.g., iPhone 15 Pro Max Refurbished Launch"
-                value={productFocus}
-                onChange={e => setProductFocus(e.target.value)}
-              />
-              <small>What specific product or event are we marketing today?</small>
-            </div>
-            
-            <div className="form-group">
-              <label>Viral URL (Optional)</label>
-              <input 
-                type="text" 
-                className="glass-input" 
-                placeholder="https://instagram.com/reel/..."
-                value={viralUrl}
-                onChange={e => setViralUrl(e.target.value)}
-              />
-              <small>Paste a competitor's viral reel or a trending video to extract its hook structure.</small>
-            </div>
-            
-            <button 
-              className="btn btn-primary btn-large" 
-              onClick={handleStartResearch}
-              disabled={isResearching || (!productFocus && !viralUrl)}
-            >
-              {isResearching ? 'Agent is Researching...' : 'Start AI Research'}
-            </button>
-          </div>
-        )}
+
 
         {step === 2 && (
           <div className="gmm-panel fade-in">
