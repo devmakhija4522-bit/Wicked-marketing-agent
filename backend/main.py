@@ -585,13 +585,16 @@ async def gmm_scrape_brand(request: GMMBrandScrapeRequest):
 @app.post("/api/gmm/research", response_model=GMMResearchResponse, tags=["GMM"])
 async def gmm_research(request: GMMResearchRequest):
     """Run Phase 1: Research (News and Hooks)."""
+    import asyncio
     try:
-        # Run agents sequentially for simplicity, could be async gathered
         news_agent = GMMNewsScoutAgent(client_id=request.client_id)
-        news_output = news_agent.run(request.product_focus)
-        
         hook_agent = GMMHookScoutAgent(client_id=request.client_id)
-        hook_output = hook_agent.run(request.product_focus, request.viral_url)
+        
+        # Run agents concurrently without blocking the FastAPI event loop
+        news_output, hook_output = await asyncio.gather(
+            asyncio.to_thread(news_agent.run, request.product_focus),
+            asyncio.to_thread(hook_agent.run, request.product_focus, request.viral_url)
+        )
         
         return GMMResearchResponse(news=news_output, hooks=hook_output)
     except Exception as e:
@@ -605,10 +608,12 @@ async def gmm_generate(request: GMMGenerateRequest):
     """Run Phase 3: Omni-channel generation."""
     try:
         omni_agent = GMMOmniWriterAgent(client_id=request.client_id)
-        result = omni_agent.run(
-            product_focus=request.product_focus,
-            news_context=request.news,
-            hook_context=request.hooks
+        import asyncio
+        result = await asyncio.to_thread(
+            omni_agent.run,
+            request.product_focus,
+            request.news,
+            request.hooks
         )
         return GMMGenerateResponse(
             instagram_reel=result.get("instagram_reel", ""),
@@ -642,7 +647,8 @@ async def grest_linkedin_draft():
     """Run the Grest LinkedIn news scanning and drafting agent."""
     try:
         agent = GrestLinkedInAgent(client_id="grest") # Default to grest client if it exists, or it just uses the system prompt
-        result = agent.run()
+        import asyncio
+        result = await asyncio.to_thread(agent.run)
         return {"draft": result}
     except Exception as e:
         import traceback
