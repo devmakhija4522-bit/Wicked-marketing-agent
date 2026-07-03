@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
 import './LinkedInStorage.css';
 import './LinkedInDrafts.css'; // Reuse Mockup UI CSS
 
 export default function LinkedInStorage() {
+  const { activeClient } = useClient();
   const [drafts, setDrafts] = useState([]);
   const [selectedDraftId, setSelectedDraftId] = useState(null);
   const [draftContent, setDraftContent] = useState('');
@@ -12,13 +14,18 @@ export default function LinkedInStorage() {
   const [loadingContent, setLoadingContent] = useState(false);
 
   useEffect(() => {
-    fetchDraftsList();
-  }, []);
+    if (activeClient) {
+      fetchDraftsList();
+      setSelectedDraftId(null);
+      setDraftContent('');
+    }
+  }, [activeClient]);
 
   const fetchDraftsList = async () => {
+    if (!activeClient) return;
     try {
       setLoadingList(true);
-      const res = await api.getLinkedInStorageDrafts();
+      const res = await api.getLinkedInStorageDrafts(activeClient.id);
       setDrafts(res.drafts || []);
     } catch (err) {
       console.error('Failed to load drafts:', err);
@@ -28,10 +35,11 @@ export default function LinkedInStorage() {
   };
 
   const loadDraftContent = async (id) => {
+    if (!activeClient) return;
     try {
       setSelectedDraftId(id);
       setLoadingContent(true);
-      const res = await api.getLinkedInStorageDraft(id);
+      const res = await api.getLinkedInStorageDraft(id, activeClient.id);
       setDraftContent(res.content || '');
     } catch (err) {
       console.error('Failed to load draft content:', err);
@@ -103,9 +111,9 @@ export default function LinkedInStorage() {
               {/* Reuse Premium Mockup UI from LinkedInDrafts.jsx */}
               <div className="linkedin-mockup-card">
                 <div className="linkedin-mockup-header">
-                  <div className="linkedin-avatar">G</div>
+                  <div className="linkedin-avatar">{activeClient?.brand_name?.[0] || 'G'}</div>
                   <div className="linkedin-author-info">
-                    <span className="linkedin-author-name">Grest Marketing</span>
+                    <span className="linkedin-author-name">{activeClient?.brand_name || 'Grest'} Marketing</span>
                     <span className="linkedin-author-meta">{selectedDraftId.replace('OUTPUT- ', '')} • 🌐</span>
                   </div>
                 </div>

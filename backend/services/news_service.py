@@ -15,14 +15,16 @@ class NewsItem(BaseModel):
     
 class NewsService:
     @staticmethod
-    def fetch_apple_news(limit: int = 3) -> List[NewsItem]:
+    def fetch_industry_news(query: str, limit: int = 3) -> List[NewsItem]:
         """
-        Fetches the absolute latest Apple news from Google News RSS feed
+        Fetches the absolute latest news from Google News RSS feed for a given query
         to guarantee 100% real, clickable, non-hallucinated links and bypass bot blocks.
         """
-        logger.info("Fetching real Apple news from Google News RSS...")
+        logger.info(f"Fetching real news from Google News RSS for query: {query}...")
         
-        url = "https://news.google.com/rss/search?q=Apple+iPhone+Mac+when:7d&hl=en-US&gl=US&ceid=US:en"
+        # Replace spaces with + for the URL
+        url_query = query.replace(' ', '+')
+        url = f"https://news.google.com/rss/search?q={url_query}+when:7d&hl=en-US&gl=US&ceid=US:en"
         try:
             # We use a standard User-Agent so we don't get blocked
             response = httpx.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}, timeout=10.0)
@@ -58,24 +60,4 @@ class NewsService:
             
         except Exception as e:
             logger.error(f"Failed to fetch RSS: {e}")
-            # Absolute fallback so we never send empty context
-            return [
-                NewsItem(
-                    title="Apple releases iOS 18 beta with new AI features",
-                    description="The latest developer beta of iOS 18 includes the highly anticipated Apple Intelligence features.",
-                    url="https://www.macrumors.com/2026/06/15/apple-releases-ios-18-beta/",
-                    source="MacRumors"
-                ),
-                NewsItem(
-                    title="Refurbished iPhone market surges in India",
-                    description="Demand for refurbished premium smartphones, especially iPhones, has seen a 25% year-over-year increase in India.",
-                    url="https://economictimes.indiatimes.com/industry/cons-products/electronics/refurbished-iphone-demand-rises/",
-                    source="Economic Times"
-                ),
-                NewsItem(
-                    title="Next-gen MacBook Pro expected to feature M4 chip",
-                    description="Rumors suggest Apple is gearing up to launch the M4 chip across its MacBook Pro lineup later this year.",
-                    url="https://9to5mac.com/2026/06/12/m4-macbook-pro-rumors/",
-                    source="9to5Mac"
-                )
-            ][:limit]
+            raise Exception(f"Failed to fetch real news for query '{query}'. Try again later.")

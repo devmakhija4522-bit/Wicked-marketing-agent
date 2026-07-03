@@ -228,6 +228,7 @@ class ClientProfile(BaseModel):
     usps: list[dict] = Field(default_factory=list)
     brand_voice: dict = Field(default_factory=dict)
     content_philosophy: dict = Field(default_factory=dict)
+    linkedin_references: list[str] = Field(default_factory=list)
 
 # ── GMM Models (Grest Marketing Manager) ──────────────────────
 
@@ -235,6 +236,10 @@ class GMMResearchRequest(BaseModel):
     client_id: str
     product_focus: Optional[str] = "General Brand Marketing"
     viral_url: Optional[str] = ""
+
+class LinkedInDraftRequest(BaseModel):
+    client_id: str
+    references: Optional[str] = ""
 
 class GMMResearchResponse(BaseModel):
     news: str

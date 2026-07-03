@@ -18,6 +18,23 @@ export const ClientProvider = ({ children }) => {
     try {
       const data = await api.getClients();
       setClients(data);
+      
+      // Auto-restore active client from localStorage
+      const savedClientId = localStorage.getItem('activeClientId');
+      if (savedClientId) {
+        const found = data.find(c => c.id === savedClientId);
+        if (found) {
+          setActiveClient(found);
+        } else if (data.length > 0) {
+          // If saved client no longer exists, fall back to first
+          setActiveClient(data[0]);
+          localStorage.setItem('activeClientId', data[0].id);
+        }
+      } else if (data.length > 0) {
+        // If no saved client, default to first
+        setActiveClient(data[0]);
+        localStorage.setItem('activeClientId', data[0].id);
+      }
     } catch (error) {
       console.error("Failed to fetch clients:", error);
     } finally {
@@ -29,6 +46,7 @@ export const ClientProvider = ({ children }) => {
     const client = clients.find(c => c.id === clientId);
     if (client) {
       setActiveClient(client);
+      localStorage.setItem('activeClientId', client.id);
     }
   };
 
@@ -49,6 +67,7 @@ export const ClientProvider = ({ children }) => {
       setClients(prev => prev.filter(c => c.id !== clientId));
       if (activeClient?.id === clientId) {
         setActiveClient(null);
+        localStorage.removeItem('activeClientId');
       }
       fetchClients();
     } catch (error) {

@@ -33,6 +33,7 @@ export const api = {
   // Clients
   getClients: () => apiRequest('/clients', { method: 'GET' }),
   addClient: (data) => apiRequest('/clients', { method: 'POST', body: data }),
+  updateClient: (id, data) => apiRequest(`/clients/${id}`, { method: 'PUT', body: data }),
   deleteClient: (id) => apiRequest(`/clients/${id}`, { method: 'DELETE' }),
   getClient: (id) => apiRequest(`/clients/${id}`, { method: 'GET' }),
 
@@ -40,7 +41,7 @@ export const api = {
   gmmResearch: (data) => apiRequest('/api/gmm/research', { method: 'POST', body: data }),
   gmmGenerate: (data) => apiRequest('/api/gmm/generate', { method: 'POST', body: data }),
   scrapeBrand: (data) => apiRequest('/api/gmm/scrape-brand', { method: 'POST', body: data }),
-  generateGrestLinkedInDraft: () => apiRequest('/api/grest/linkedin-draft', { method: 'POST' }),
+  generateLinkedInDraft: (data) => apiRequest('/api/linkedin-draft', { method: 'POST', body: data }),
   searchInfluencers: (data) => apiRequest('/api/grest/influencer-search', { method: 'POST', body: data }),
 
   // Vault
@@ -112,11 +113,11 @@ export const api = {
   generateLinkedInDrafts: (limit = 3) =>
     apiRequest(`/linkedin/generate?limit=${limit}`, { method: 'GET' }),
   
-  getLinkedInStorageDrafts: () =>
-    apiRequest('/api/linkedin/drafts', { method: 'GET' }),
+  getLinkedInStorageDrafts: (clientId) =>
+    apiRequest(`/api/linkedin/drafts?client_id=${clientId}`, { method: 'GET' }),
 
-  getLinkedInStorageDraft: (draftId) =>
-    apiRequest(`/api/linkedin/drafts/${draftId}`, { method: 'GET' }),
+  getLinkedInStorageDraft: (draftId, clientId) =>
+    apiRequest(`/api/linkedin/drafts/${draftId}?client_id=${clientId}`, { method: 'GET' }),
 
   // Jobs
   getJobStatus: (jobId) =>

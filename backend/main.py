@@ -527,6 +527,20 @@ async def add_client(client_in: ClientCreate):
     save_client_profile(client_data)
     return client_data
 
+@app.put("/clients/{client_id}", tags=["Clients"])
+async def update_client(client_id: str, client_in: dict):
+    """Update an existing client profile."""
+    client_data = load_client_profile(client_id)
+    if not client_data or client_data.get("brand_name") == "Unknown Client":
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    # Merge the new data
+    client_data.update(client_in)
+    client_data["id"] = client_id # Ensure ID doesn't change
+    
+    save_client_profile(client_data)
+    return client_data
+
 @app.get("/clients", tags=["Clients"])
 async def list_clients():
     """List all available client profiles."""
@@ -671,19 +685,19 @@ async def get_content_templates():
 
 
 # ── Import for script-writer endpoint ─────────────────────────
-from models import ContentConcept
-from agents.grest_linkedin_agent import GrestLinkedInAgent
+from models import ContentConcept, LinkedInDraftRequest
+from agents.linkedin_agent import LinkedInAgent
 
-@app.post("/api/grest/linkedin-draft", response_model=dict, tags=["Grest"])
-async def grest_linkedin_draft(background_tasks: BackgroundTasks):
-    """Run the Grest LinkedIn news scanning and drafting agent."""
+@app.post("/api/linkedin-draft", response_model=dict, tags=["LinkedIn"])
+async def linkedin_draft(req: LinkedInDraftRequest, background_tasks: BackgroundTasks):
+    """Run the dynamic LinkedIn news scanning and drafting agent."""
     job_id = uuid.uuid4().hex[:12]
     background_jobs[job_id] = {"status": "pending"}
 
     def _do_draft():
         try:
             background_jobs[job_id]["status"] = "running"
-            agent = GrestLinkedInAgent(client_id="grest") # Default to grest client if it exists, or it just uses the system prompt
+            agent = LinkedInAgent(client_id=req.client_id, references=req.references) 
             result = agent.run()
             
             date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -694,12 +708,12 @@ async def grest_linkedin_draft(background_tasks: BackgroundTasks):
                 collection = db["linkedin_drafts"]
                 collection.update_one(
                     {"_id": draft_id},
-                    {"$set": {"content": result, "created_at": datetime.utcnow()}},
+                    {"$set": {"content": result, "created_at": datetime.utcnow(), "client_id": req.client_id}},
                     upsert=True
                 )
             else:
                 # Fallback to local files
-                output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+                output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts" / req.client_id
                 output_dir.mkdir(parents=True, exist_ok=True)
                 filepath = output_dir / f"{draft_id}.md"
                 with open(filepath, "w", encoding="utf-8") as f:
@@ -757,15 +771,18 @@ async def grest_influencer_search(request: InfluencerSearchRequest, background_t
 
 
 @app.get("/api/linkedin/drafts", tags=["LinkedIn Storage"])
-async def list_linkedin_drafts():
+async def list_linkedin_drafts(client_id: str = None):
     drafts = []
     
     if db is not None:
         collection = db["linkedin_drafts"]
-        for doc in collection.find({}, {"_id": 1}).sort("_id", pymongo.DESCENDING):
+        query = {"client_id": client_id} if client_id else {}
+        for doc in collection.find(query, {"_id": 1}).sort("_id", pymongo.DESCENDING):
             drafts.append(doc["_id"])
     else:
         output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+        if client_id:
+            output_dir = output_dir / client_id
         if output_dir.exists():
             for file in output_dir.glob("OUTPUT- *.md"):
                 drafts.append(file.name.replace(".md", ""))
@@ -775,15 +792,20 @@ async def list_linkedin_drafts():
 
 
 @app.get("/api/linkedin/drafts/{draft_id}", tags=["LinkedIn Storage"])
-async def get_linkedin_draft(draft_id: str):
+async def get_linkedin_draft(draft_id: str, client_id: str = None):
     if db is not None:
         collection = db["linkedin_drafts"]
-        doc = collection.find_one({"_id": draft_id})
+        query = {"_id": draft_id}
+        if client_id:
+            query["client_id"] = client_id
+        doc = collection.find_one(query)
         if not doc:
             raise HTTPException(status_code=404, detail="Draft not found")
         return {"content": doc.get("content", "")}
     else:
         output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
+        if client_id:
+            output_dir = output_dir / client_id
         filepath = output_dir / f"{draft_id}.md"
         if not filepath.exists():
             raise HTTPException(status_code=404, detail="Draft not found")

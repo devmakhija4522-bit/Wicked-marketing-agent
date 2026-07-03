@@ -71,34 +71,7 @@ export default function Sidebar() {
                 </NavLink>
               ))}
               
-              {activeClient.brand_name?.toLowerCase() === 'grest' && (
-                <>
-                  <NavLink
-                    to="/linkedin-storage"
-                    className={({ isActive }) =>
-                      `nav-item ${isActive ? 'nav-item-active' : ''}`
-                    }
-                  >
-                    <span className="nav-icon">🗄️</span>
-                    <span className="nav-label">LinkedIn Storage</span>
-                    {location.pathname === '/linkedin-storage' && (
-                      <span className="nav-active-indicator" />
-                    )}
-                  </NavLink>
-                  <NavLink
-                    to="/influencers"
-                    className={({ isActive }) =>
-                      `nav-item ${isActive ? 'nav-item-active' : ''}`
-                    }
-                  >
-                    <span className="nav-icon">🔍</span>
-                    <span className="nav-label">Influencer Scout</span>
-                    {location.pathname === '/influencers' && (
-                      <span className="nav-active-indicator" />
-                    )}
-                  </NavLink>
-                </>
-              )}
+
             </>
           )}
         </nav>

@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
 import './InstagramScripts.css';
 
 export default function InstagramScripts() {
+  const { activeClient } = useClient();
   const [scriptData, setScriptData] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +30,7 @@ export default function InstagramScripts() {
       <div className="page-header">
         <div className="instagram-header-row">
           <div>
-            <h1><span className="gradient-text">Instagram</span> Scripts</h1>
+            <h1><span className="gradient-text">{activeClient?.brand_name || 'Instagram'}</span> Scripts</h1>
             <p>Generate viral Reels scripts by combining Apple News with proven storytelling formats.</p>
           </div>
           <button className="btn btn-primary" onClick={handleGenerate} disabled={loading}>

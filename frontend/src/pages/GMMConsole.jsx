@@ -130,21 +130,28 @@ export default function GMMConsole() {
         
       </header>
 
-      {activeClient && activeClient.brand_name && activeClient.brand_name.toLowerCase() === 'grest' && (
-        <div style={{ padding: '0 2rem 1rem 2rem', display: 'flex', gap: '1rem' }}>
+      {activeClient && activeClient.brand_name && (
+        <div style={{ padding: '0 2rem 1rem 2rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <button 
             className="btn btn-primary" 
             onClick={() => navigate('/linkedin')}
             style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #004182 100%)', border: 'none' }}
           >
-            <span style={{ marginRight: '0.5rem' }}>💼</span> Open LinkedIn Agent
+            <span style={{ marginRight: '0.5rem' }}>💼</span> LinkedIn Agent
+          </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => navigate('/linkedin-storage')}
+            style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #004182 100%)', border: 'none', opacity: 0.9 }}
+          >
+            <span style={{ marginRight: '0.5rem' }}>🗄️</span> LinkedIn Storage
           </button>
           <button 
             className="btn btn-primary" 
             onClick={() => navigate('/influencers')}
             style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: 'none' }}
           >
-            <span style={{ marginRight: '0.5rem' }}>🔍</span> Open Influencer Scout
+            <span style={{ marginRight: '0.5rem' }}>🔍</span> Influencer Scout
           </button>
         </div>
       )}
