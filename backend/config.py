@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
+from pymongo import MongoClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -61,9 +65,21 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+mongo_client = None
+db = None
+if settings.mongodb_uri:
+    try:
+        mongo_client = MongoClient(settings.mongodb_uri)
+        db = mongo_client["wicked_marketing"]
+        logger.info("Connected to MongoDB from config")
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {e}")
 
 def get_all_clients() -> list[dict]:
     """List all available client profiles."""
+    if db is not None:
+        return list(db.clients.find({}, {"_id": 0}))
+        
     if not CLIENTS_DIR.exists():
         CLIENTS_DIR.mkdir(parents=True, exist_ok=True)
         return []
@@ -80,6 +96,15 @@ def get_all_clients() -> list[dict]:
 
 def load_client_profile(client_id: str) -> dict:
     """Load a specific client profile JSON."""
+    if db is not None:
+        profile = db.clients.find_one({"id": client_id}, {"_id": 0})
+        if profile:
+            return profile
+        all_clients = get_all_clients()
+        if all_clients:
+            return all_clients[0]
+        return {"brand_name": "Unknown Client"}
+
     profile_path = CLIENTS_DIR / f"{client_id}.json"
     if not profile_path.exists():
         # Fallback to the first client if it exists, otherwise empty
@@ -92,12 +117,20 @@ def load_client_profile(client_id: str) -> dict:
 
 def save_client_profile(client_data: dict) -> None:
     """Save a client profile JSON."""
-    if not CLIENTS_DIR.exists():
-        CLIENTS_DIR.mkdir(parents=True, exist_ok=True)
-    
     client_id = client_data.get("id")
     if not client_id:
         return
+
+    if db is not None:
+        db.clients.update_one(
+            {"id": client_id},
+            {"$set": client_data},
+            upsert=True
+        )
+        return
+
+    if not CLIENTS_DIR.exists():
+        CLIENTS_DIR.mkdir(parents=True, exist_ok=True)
         
     profile_path = CLIENTS_DIR / f"{client_id}.json"
     with open(profile_path, "w", encoding="utf-8") as f:
@@ -105,6 +138,10 @@ def save_client_profile(client_data: dict) -> None:
 
 def delete_client_profile(client_id: str) -> bool:
     """Delete a client profile JSON."""
+    if db is not None:
+        result = db.clients.delete_one({"id": client_id})
+        return result.deleted_count > 0
+
     profile_path = CLIENTS_DIR / f"{client_id}.json"
     if profile_path.exists():
         profile_path.unlink()
@@ -125,6 +162,9 @@ def load_content_templates() -> dict:
 
 def load_generated_scripts() -> list[dict]:
     """Load previously generated scripts from the JSON file."""
+    if db is not None:
+        return list(db.generated_scripts.find({}, {"_id": 0}))
+
     if not SCRIPTS_FILE.exists():
         return []
     try:
@@ -136,6 +176,15 @@ def load_generated_scripts() -> list[dict]:
 
 def save_generated_scripts(scripts: list[dict]) -> None:
     """Persist generated scripts to the JSON file."""
+    if db is not None:
+        current_ids = [s["id"] for s in scripts if "id" in s]
+        db.generated_scripts.delete_many({"id": {"$nin": current_ids}})
+        for s in scripts:
+            if "id" in s:
+                s_copy = {k: v for k, v in s.items() if k != "_id"}
+                db.generated_scripts.update_one({"id": s["id"]}, {"$set": s_copy}, upsert=True)
+        return
+
     SCRIPTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(SCRIPTS_FILE, "w", encoding="utf-8") as f:
         json.dump(scripts, f, indent=2, ensure_ascii=False, default=str)

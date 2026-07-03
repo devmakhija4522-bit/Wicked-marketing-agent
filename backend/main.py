@@ -19,7 +19,7 @@ import pymongo
 # Ensure the backend directory is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_generated_scripts, save_generated_scripts
+from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_generated_scripts, save_generated_scripts, db
 from models import (
     ClientCreate,
     BrandGuardianOutput,
@@ -69,14 +69,7 @@ logger = logging.getLogger("wicked.server")
 pipeline_runs: dict[str, PipelineRun] = {}
 background_jobs: dict[str, dict] = {}
 
-mongo_client = None
-db = None
-if settings.mongodb_uri:
-    try:
-        mongo_client = MongoClient(settings.mongodb_uri)
-        db = mongo_client["wicked_marketing"]
-    except Exception as e:
-        logger.error(f"Failed to connect to MongoDB: {e}")
+# (MongoDB initialized in config.py)
 
 # ── App Lifespan ──────────────────────────────────────────────
 
