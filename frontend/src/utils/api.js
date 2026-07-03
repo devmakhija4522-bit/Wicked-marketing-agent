@@ -41,6 +41,7 @@ export const api = {
   gmmGenerate: (data) => apiRequest('/api/gmm/generate', { method: 'POST', body: data }),
   scrapeBrand: (data) => apiRequest('/api/gmm/scrape-brand', { method: 'POST', body: data }),
   generateGrestLinkedInDraft: () => apiRequest('/api/grest/linkedin-draft', { method: 'POST' }),
+  searchInfluencers: (data) => apiRequest('/api/grest/influencer-search', { method: 'POST', body: data }),
 
   // Vault
   saveToVault: (data) => apiRequest('/api/vault/save', { method: 'POST', body: data }),

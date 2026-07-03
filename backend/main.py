@@ -717,6 +717,44 @@ async def grest_linkedin_draft(background_tasks: BackgroundTasks):
     background_tasks.add_task(_do_draft)
     return {"job_id": job_id}
 
+from pydantic import BaseModel
+class InfluencerSearchRequest(BaseModel):
+    platform: str = "YouTube and Instagram"
+    category: str = "Tech"
+    followerCount: str = "50k - 100k"
+    city: str = "India"
+
+from agents.grest_influencer_agent import GrestInfluencerAgent
+
+@app.post("/api/grest/influencer-search", response_model=dict, tags=["Grest"])
+async def grest_influencer_search(request: InfluencerSearchRequest, background_tasks: BackgroundTasks):
+    """Run the Grest Influencer Scout agent."""
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
+
+    def _do_scout():
+        try:
+            background_jobs[job_id]["status"] = "running"
+            agent = GrestInfluencerAgent(client_id="grest")
+            result = agent.run({
+                "platform": request.platform,
+                "category": request.category,
+                "followerCount": request.followerCount,
+                "city": request.city
+            })
+            
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = {"draft": result}
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_scout)
+    return {"job_id": job_id}
+
 
 @app.get("/api/linkedin/drafts", tags=["LinkedIn Storage"])
 async def list_linkedin_drafts():

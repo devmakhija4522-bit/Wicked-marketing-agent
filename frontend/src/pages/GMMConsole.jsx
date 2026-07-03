@@ -139,6 +139,13 @@ export default function GMMConsole() {
           >
             <span style={{ marginRight: '0.5rem' }}>💼</span> Open LinkedIn Agent
           </button>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => navigate('/influencers')}
+            style={{ background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', border: 'none' }}
+          >
+            <span style={{ marginRight: '0.5rem' }}>🔍</span> Open Influencer Scout
+          </button>
         </div>
       )}
 
