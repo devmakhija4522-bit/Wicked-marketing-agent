@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # --- LLM ---
-    gemini_model: str = "gemini-2.5-pro"
+    gemini_model: str = "gemini-2.5-flash"
     gemini_temperature: float = 0.8
     gemini_max_tokens: int = 8192
 
