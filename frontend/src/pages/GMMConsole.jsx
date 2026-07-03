@@ -128,13 +128,6 @@ export default function GMMConsole() {
           <p className="gmm-subtitle">AI-Powered Campaign Console for <strong>{activeClient.brand_name}</strong></p>
         </div>
         
-        <div className="step-indicator">
-          <div className={`step ${step >= 1 ? 'active' : ''}`}>1. Setup</div>
-          <div className="step-line"></div>
-          <div className={`step ${step >= 2 ? 'active' : ''}`}>2. Review</div>
-          <div className="step-line"></div>
-          <div className={`step ${step >= 3 ? 'active' : ''}`}>3. Output</div>
-        </div>
       </header>
 
       {activeClient && activeClient.brand_name && activeClient.brand_name.toLowerCase() === 'grest' && (
