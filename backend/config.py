@@ -84,23 +84,33 @@ if settings.mongodb_uri:
         logger.error(f"Failed to connect to MongoDB: {e}")
 
 def get_all_clients() -> list[dict]:
-    """List all available client profiles."""
-    if db is not None:
-        return list(db.clients.find({}, {"_id": 0}))
-        
+    """List all available client profiles from both local storage and MongoDB."""
+    clients_dict = {}
+    
+    # 1. Load from local JSON files
     if not CLIENTS_DIR.exists():
         CLIENTS_DIR.mkdir(parents=True, exist_ok=True)
-        return []
-    
-    clients = []
-    for file_path in CLIENTS_DIR.glob("*.json"):
+    else:
+        for file_path in CLIENTS_DIR.glob("*.json"):
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if "id" in data:
+                        clients_dict[data["id"]] = data
+            except (json.JSONDecodeError, IOError):
+                pass
+                
+    # 2. Load from MongoDB and merge/overwrite
+    if db is not None:
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                clients.append(data)
-        except (json.JSONDecodeError, IOError):
-            pass
-    return clients
+            mongo_clients = list(db.clients.find({}, {"_id": 0}))
+            for data in mongo_clients:
+                if "id" in data:
+                    clients_dict[data["id"]] = data
+        except Exception as e:
+            logger.error(f"Failed to fetch clients from MongoDB: {e}")
+            
+    return list(clients_dict.values())
 
 def load_client_profile(client_id: str) -> dict:
     """Load a specific client profile directly (no full-collection scan)."""
@@ -127,25 +137,32 @@ def load_client_profile(client_id: str) -> dict:
     return {"brand_name": "Unknown Client"}
 
 def save_client_profile(client_data: dict) -> None:
-    """Save a client profile JSON."""
+    """Save a client profile JSON to both MongoDB and local storage."""
     client_id = client_data.get("id")
     if not client_id:
         return
 
-    if db is not None:
-        db.clients.update_one(
-            {"id": client_id},
-            {"$set": client_data},
-            upsert=True
-        )
-        return
-
+    # Always save to local JSON file for backup/persistence
     if not CLIENTS_DIR.exists():
         CLIENTS_DIR.mkdir(parents=True, exist_ok=True)
         
     profile_path = CLIENTS_DIR / f"{client_id}.json"
-    with open(profile_path, "w", encoding="utf-8") as f:
-        json.dump(client_data, f, indent=2)
+    try:
+        with open(profile_path, "w", encoding="utf-8") as f:
+            json.dump(client_data, f, indent=2)
+    except IOError as e:
+        logger.error(f"Failed to save local client file: {e}")
+
+    # Also save to MongoDB if configured
+    if db is not None:
+        try:
+            db.clients.update_one(
+                {"id": client_id},
+                {"$set": client_data},
+                upsert=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to save client to MongoDB: {e}")
 
 def delete_client_profile(client_id: str) -> bool:
     """Delete a client profile JSON."""

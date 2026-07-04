@@ -158,6 +158,47 @@ export default function GMMConsole() {
 
       <div className="gmm-content">
 
+        {step === 1 && (
+          <div className="gmm-panel fade-in">
+            <h2>Phase 1: Deep Research</h2>
+            <p className="review-instruction">Define the focus of this campaign. The AI will scan real-time news and viral hooks based on this focus.</p>
+            
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label>Product / Campaign Focus</label>
+              <input 
+                type="text" 
+                className="glass-input" 
+                placeholder="e.g. Summer Collection Launch, New App Feature"
+                value={productFocus}
+                onChange={(e) => setProductFocus(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', marginTop: '0.5rem' }}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label>Viral Reference URL (Optional)</label>
+              <input 
+                type="text" 
+                className="glass-input" 
+                placeholder="Paste a TikTok or Reels URL you want to emulate"
+                value={viralUrl}
+                onChange={(e) => setViralUrl(e.target.value)}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', marginTop: '0.5rem' }}
+              />
+            </div>
+
+            <div className="action-row">
+              <button 
+                className="btn btn-primary btn-large" 
+                onClick={handleStartResearch}
+                disabled={isResearching || (!productFocus && !viralUrl)}
+                style={{ width: '100%', marginTop: '1rem' }}
+              >
+                {isResearching ? 'Scanning Web & Extracting Hooks...' : 'Start Research Phase'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {step === 2 && (
           <div className="gmm-panel fade-in">

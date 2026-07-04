@@ -84,9 +84,6 @@ export const api = {
       body: JSON.stringify({ script }),
     }),
 
-  // History
-  getHistory: () =>
-    apiRequest('/api/history', { method: 'GET' }),
 
   // Stats
   getStats: () =>
