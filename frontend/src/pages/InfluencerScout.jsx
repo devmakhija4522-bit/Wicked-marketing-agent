@@ -195,7 +195,14 @@ export default function InfluencerScout() {
       </div>
 
       {/* Render Structured Data Cards */}
-      {results && Array.isArray(results) && (
+      {results && Array.isArray(results) && results.length === 0 && (
+        <div className="influencer-card" style={{ marginTop: '1.5rem', textAlign: 'center', color: '#94a3b8' }}>
+          No verified influencers found for this criteria. Try a broader category,
+          follower range, or city, then search again.
+        </div>
+      )}
+
+      {results && Array.isArray(results) && results.length > 0 && (
         <div className="results-grid">
           {results.map((inf, idx) => (
             <div key={idx} className="data-card fade-in">
