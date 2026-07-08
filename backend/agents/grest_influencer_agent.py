@@ -1,6 +1,10 @@
 import json
 import re
+import time
+from datetime import datetime, timezone
+from typing import Optional
 
+import feedparser
 import httpx
 
 from agents.base_agent import BaseAgent
@@ -12,6 +16,7 @@ _VERIFY_HEADERS = {
 }
 
 _YOUTUBE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
+_YOUTUBE_MAX_INACTIVE_DAYS = 30
 
 class GrestInfluencerAgent(BaseAgent):
     """
@@ -113,14 +118,19 @@ Output strictly as a valid JSON array.
             platform_name = (inf.get("platform") or "").lower()
 
             if "instagram" in platform_name or "instagram.com" in url:
-                exists = self._instagram_profile_exists(url, handle)
+                keep = self._instagram_profile_exists(url, handle)
+                reason = "hallucinated/dead Instagram link"
             elif "youtube" in platform_name or "youtube.com" in url:
-                exists = self._youtube_channel_exists(url, handle)
+                keep = self._youtube_channel_exists(url, handle)
+                reason = "hallucinated/dead YouTube channel"
+                if keep and self._youtube_channel_is_stale(url, handle):
+                    keep = False
+                    reason = f"inactive YouTube channel (no upload in {_YOUTUBE_MAX_INACTIVE_DAYS}+ days)"
             else:
-                exists = True  # unrecognized platform/URL shape — can't verify, don't punish
+                keep, reason = True, ""  # unrecognized platform/URL shape — can't verify, don't punish
 
-            if exists is False:
-                self.logger.warning(f"Dropping hallucinated/dead influencer link: {url or handle}")
+            if not keep:
+                self.logger.warning(f"Dropping {reason}: {url or handle}")
                 continue
             verified.append(inf)
         return verified
@@ -146,6 +156,73 @@ Output strictly as a valid JSON array.
                 self.logger.warning(f"YouTube Data API lookup failed for {value}, falling back to page check: {e}")
 
         return not self._page_is_404(url or f"https://www.youtube.com/@{handle.lstrip('@')}")
+
+    def _youtube_channel_is_stale(self, url: str, handle: str) -> bool:
+        """Checks the channel's public upload RSS feed (no API key needed) for
+        its most recent video. Returns True only when we can positively confirm
+        the channel hasn't posted in _YOUTUBE_MAX_INACTIVE_DAYS+ days, or has no
+        public uploads at all. Any failure to resolve the channel ID or fetch/
+        parse the feed is treated as inconclusive and left in (fail open)."""
+        channel_id = self._resolve_youtube_channel_id(url, handle)
+        if not channel_id:
+            return False
+
+        try:
+            resp = httpx.get(
+                f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}",
+                headers=_VERIFY_HEADERS,
+                timeout=8.0,
+            )
+            resp.raise_for_status()
+        except httpx.HTTPError as e:
+            self.logger.warning(f"Could not fetch upload feed for {channel_id}, skipping recency check: {e}")
+            return False
+
+        feed = feedparser.parse(resp.content)
+        if not feed.entries:
+            return True  # no public uploads at all
+
+        latest = feed.entries[0]
+        published = getattr(latest, "published_parsed", None)
+        if not published:
+            return False
+
+        latest_dt = datetime.fromtimestamp(time.mktime(published), tz=timezone.utc)
+        age_days = (datetime.now(timezone.utc) - latest_dt).days
+        return age_days > _YOUTUBE_MAX_INACTIVE_DAYS
+
+    def _resolve_youtube_channel_id(self, url: str, handle: str) -> Optional[str]:
+        """The RSS feed only accepts a real channel ID, not a handle/username, so
+        this resolves one: straight from the URL if it's already a /channel/ link,
+        via the Data API if configured, or by scraping the page's canonical link
+        (reliable — unlike a generic "channelId" string match elsewhere in the
+        page, which can pick up an unrelated channel referenced on it)."""
+        if m := re.search(r"youtube\.com/channel/([\w-]+)", url):
+            return m.group(1)
+
+        param_name, value = self._extract_youtube_lookup(url, handle)
+        if settings.has_youtube and param_name and value:
+            try:
+                resp = httpx.get(
+                    _YOUTUBE_CHANNELS_URL,
+                    params={"part": "id", param_name: value, "key": settings.youtube_api_key},
+                    timeout=8.0,
+                )
+                if resp.status_code == 200:
+                    items = resp.json().get("items") or []
+                    if items:
+                        return items[0]["id"]
+            except (httpx.HTTPError, ValueError):
+                pass
+
+        lookup_url = url or f"https://www.youtube.com/@{handle.lstrip('@')}"
+        try:
+            resp = httpx.get(lookup_url, headers=_VERIFY_HEADERS, timeout=8.0, follow_redirects=True)
+            if m := re.search(r'<link rel="canonical" href="https://www\.youtube\.com/channel/([\w-]+)"', resp.text):
+                return m.group(1)
+        except httpx.HTTPError:
+            pass
+        return None
 
     @staticmethod
     def _extract_youtube_lookup(url: str, handle: str) -> tuple[str, str]:
