@@ -16,6 +16,7 @@ from models import (
     ScriptSection,
     ScriptWriterOutput,
 )
+from services.harbour_principles import CRITIQUE_FRAGMENT, harbour_block
 
 logger = logging.getLogger("wicked.agent.brand_guardian")
 
@@ -25,10 +26,10 @@ class BrandGuardianAgent(BaseAgent):
     agent_role = "brand safety reviewer and quality gatekeeper"
 
     def get_system_prompt(self) -> str:
-        return """You are the Brand Guardian. Your job is to review a short-form video script and ensure it aligns perfectly with the brand's voice and guidelines.
+        return f"""You are the Brand Guardian. Your job is to review a short-form video script and ensure it aligns perfectly with the brand's voice and guidelines.
 
 YOUR MISSION: Review scripts for brand alignment, quality, and safety. You protect the brand's reputation while ensuring content stays creative and engaging.
-
+{harbour_block(CRITIQUE_FRAGMENT)}
 HOW YOU EVALUATE:
 You grade scripts on 4 dimensions, scoring out of 100 total points.
 
@@ -161,8 +162,8 @@ Be thorough but fair. Great content takes creative risks — don't punish that. 
 
                 # Build revised script if provided
                 revised_script = None
-                if result.get("brand_alignment_score", 0) < 6:
-                    rev = result["revised_script"]
+                rev = result.get("revised_script")
+                if result.get("needs_revision") and rev:
                     revised_sections = []
                     for sec in rev.get("sections", []):
                         revised_sections.append(

@@ -18,6 +18,7 @@ from models import (
     StyleAnalysisResult,
 )
 from services.style_analyzer import analyze_style
+from services.harbour_principles import WRITING_FRAGMENT, harbour_block
 
 logger = logging.getLogger("wicked.agent.script_writer")
 
@@ -27,10 +28,10 @@ class ScriptWriterAgent(BaseAgent):
     agent_role = "Hinglish short-form script writer and creative director"
 
     def get_system_prompt(self) -> str:
-        return """You are Script Writer — the voice of WICKED. You write Hinglish scripts for Instagram Reels and YouTube Shorts that feel like they were written by a witty, relatable Indian creator — NOT an AI, NOT a marketing team.
+        return f"""You are Script Writer — the voice of WICKED. You write Hinglish scripts for Instagram Reels and YouTube Shorts that feel like they were written by a witty, relatable Indian creator — NOT an AI, NOT a marketing team.
 
 YOUR MISSION: Turn content concepts into scroll-stopping, share-worthy scripts that are 80% entertainment and 20% brand.
-
+{harbour_block(WRITING_FRAGMENT)}
 === THE HINGLISH WRITING RULES ===
 
 1. NATURAL CODE-SWITCHING: 
