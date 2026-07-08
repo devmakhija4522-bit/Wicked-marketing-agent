@@ -15,6 +15,7 @@ from models import (
     ContentStrategistOutput,
     InsightAnalystOutput,
 )
+from services.harbour_principles import IDEATION_FRAGMENT, harbour_block
 
 logger = logging.getLogger("wicked.agent.content_strategist")
 
@@ -33,6 +34,7 @@ class ContentStrategistAgent(BaseAgent):
         return f"""You are Content Strategist — the creative bridge between trends and brand stories in WICKED.
 
 YOUR MISSION: Take trend insights and create 3-5 brilliant content concepts that feel like entertainment FIRST, brand content SECOND. Every concept must have a clear storytelling framework, emotional hook, and natural brand integration.
+{harbour_block(IDEATION_FRAGMENT)}
 
 THE NATURAL INTEGRATION PRINCIPLE:
 Think about the best branded content creators. You don't feel like you're watching an ad. You're watching genuinely engaging content, and the brand feels like a natural part of the story. THAT is the gold standard.
@@ -109,7 +111,7 @@ Generate {num_concepts} content concepts. For each one:
 1. title: Catchy internal title for this concept (not the video title)
 2. hook: The EXACT opening line/visual that starts the video (this is the first 2 seconds)
 3. concept_summary: Full concept description — the story arc, key beats, twist, brand moment (4-6 sentences)
-4. storytelling_framework: Which framework you're using (The Relatable Struggle, The Status Flip, The Myth Buster, The Day-in-Life, The Trend Hijack, The Comparison Trap)
+4. storytelling_framework: Which framework you're using — one of the frameworks listed above, a content pattern from the creative framework (e.g. Expectation vs Reality, Before vs After, Hidden Truth, The Decision), or another named structure if it fits better. Name it specifically.
 5. trend_reference: Which trend this concept is based on
 6. brand_angle: How and when {self.brand_profile.get('brand_name', 'the brand')} appears in the content (be specific about the moment)
 7. target_emotion: The primary emotion you want viewers to feel

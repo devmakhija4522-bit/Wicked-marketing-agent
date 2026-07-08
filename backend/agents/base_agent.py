@@ -8,7 +8,7 @@ import json
 import logging
 from typing import Optional
 
-from config import load_client_profile
+from config import load_client_profile, load_content_templates
 from services.llm_service import LLMService, get_llm_service
 
 
@@ -33,6 +33,13 @@ class BaseAgent:
         if self._brand_profile is None:
             self._brand_profile = load_client_profile(self.client_id)
         return self._brand_profile
+
+    @property
+    def content_templates(self) -> dict:
+        """Lazy-load the storytelling framework templates."""
+        if self._content_templates is None:
+            self._content_templates = load_content_templates()
+        return self._content_templates
 
     @property
     def brand_context_summary(self) -> str:

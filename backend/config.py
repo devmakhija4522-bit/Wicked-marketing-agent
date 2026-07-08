@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     gemini_temperature: float = 0.8
     gemini_max_tokens: int = 8192
 
+    # --- Creative framework ---
+    # Toggles the Harbour creative-principles prompt additions in the ideation/
+    # writing/critique agents. Off = exact prior prompt behavior, for rollback
+    # or A/B comparison.
+    harbour_mode_enabled: bool = True
+
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
     @property
@@ -95,25 +101,28 @@ def get_all_clients() -> list[dict]:
     return clients
 
 def load_client_profile(client_id: str) -> dict:
-    """Load a specific client profile JSON."""
+    """Load a specific client profile directly (no full-collection scan)."""
     if db is not None:
-        profile = db.clients.find_one({"id": client_id}, {"_id": 0})
-        if profile:
-            return profile
-        all_clients = get_all_clients()
-        if all_clients:
-            return all_clients[0]
-        return {"brand_name": "Unknown Client"}
+        try:
+            doc = db.clients.find_one({"id": client_id}, {"_id": 0})
+            if doc:
+                return doc
+        except Exception as e:
+            logger.error(f"Failed to fetch client '{client_id}' from MongoDB: {e}")
 
     profile_path = CLIENTS_DIR / f"{client_id}.json"
-    if not profile_path.exists():
-        # Fallback to the first client if it exists, otherwise empty
-        all_clients = get_all_clients()
-        if all_clients:
-            return all_clients[0]
-        return {"brand_name": "Unknown Client"}
-    with open(profile_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    if profile_path.exists():
+        try:
+            with open(profile_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Failed to read {profile_path}: {e}")
+
+    # Unknown client_id — fall back to whatever's available, same as before.
+    all_clients = get_all_clients()
+    if all_clients:
+        return all_clients[0]
+    return {"brand_name": "Unknown Client"}
 
 def save_client_profile(client_data: dict) -> None:
     """Save a client profile JSON."""
