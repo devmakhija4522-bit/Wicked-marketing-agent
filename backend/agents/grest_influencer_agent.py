@@ -29,6 +29,12 @@ class GrestInfluencerAgent(BaseAgent):
         follower_count = criteria.get('followerCount', '50k - 100k')
         city = criteria.get('city', 'India')
 
+        city_line = (
+            "- Target City: No location restriction — creators from anywhere in India are fine."
+            if city.strip().lower() in ("all india", "india", "")
+            else f"- Target City (where the influencer or their audience is broadly associated with): {city}"
+        )
+
         system_prompt = f"""
 You are an expert Influencer Marketing Strategist working for Grest (grest.in).
 Your task is to find the best influencer matches based on these specific criteria:
@@ -36,14 +42,15 @@ Your task is to find the best influencer matches based on these specific criteri
 CRITERIA:
 - Platform: {platform}
 - Category/Niche/Content Style: {category}
-- Follower Count: {follower_count}
-- Target City (Where influencer & their primary audience resides): {city}
+- Follower Count: approximately {follower_count} (a reasonable, good-faith estimate is fine — see note below)
+{city_line}
 
-Use the web to search for real, active influencers that match this exact criteria.
+Use the web to search for real, active influencers that match this criteria.
 
 STRICT VERIFICATION & QUALITY CONTROL (BACKEND ONLY):
-1. **ABSOLUTELY NO HALLUCINATIONS:** You must NEVER guess an Instagram or YouTube handle. Do not assume that if someone's name is "John Doe", their handle is "instagram.com/johndoe". YOU MUST only provide a URL if you explicitly saw that exact URL written out in your web search results. If you cannot find their explicit, exact profile URL in the search results, DO NOT include them in the list.
-2. **FAKE FOLLOWER DETECTION:** You must analyze the influencer's engagement patterns. Look for red flags that indicate purchased fake followers or boosted bot engagement. 
+1. **ABSOLUTELY NO HALLUCINATIONS ON IDENTITY — this is the one hard rule:** You must NEVER guess an Instagram or YouTube handle. Do not assume that if someone's name is "John Doe", their handle is "instagram.com/johndoe". YOU MUST only provide a URL if you explicitly saw that exact URL written out in your web search results. If you cannot find their explicit, exact profile URL in the search results, DO NOT include them in the list. This rule is non-negotiable.
+2. **Follower count and city are soft targets, not proof requirements:** Search results rarely state an exact subscriber count or explicit audience geography in plain text. Use your best good-faith judgment from whatever context is available (channel description, video content, comments, related coverage) to estimate whether a REAL, VERIFIED creator (per rule 1) is a reasonable fit for the requested follower range and city. Do not discard an otherwise real, correctly-identified creator just because you can't find an exact quoted number or an explicit "based in X" statement — approximate is fine here. Note in "reasoning" when a figure is an estimate.
+3. **FAKE FOLLOWER DETECTION:** You must analyze the influencer's engagement patterns. Look for red flags that indicate purchased fake followers or boosted bot engagement.
    - *Pattern 1:* Extremely high follower count (e.g., 500k+) but very low average likes/comments on videos (e.g., < 1,000 likes).
    - *Pattern 2:* Comments are generic (e.g., "nice", "fire emoji", spam) rather than actual community discussion.
    - *Action:* If you detect these patterns of fake engagement, DISCARD the profile and find another one. Only recommend creators with authentic, organic engagement.
