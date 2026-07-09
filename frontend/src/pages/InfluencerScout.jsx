@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api';
 import './InfluencerScout.css';
 
 export default function InfluencerScout() {
+  const navigate = useNavigate();
+  const { activeClient } = useClient();
   const [criteria, setCriteria] = useState({
     platform: 'YouTube and Instagram',
     category: 'Tech',
@@ -92,6 +96,13 @@ export default function InfluencerScout() {
   return (
     <div className="influencer-page">
       <div className="influencer-header">
+        <button
+          className="btn btn-sm btn-secondary"
+          onClick={() => navigate(activeClient ? `/gmm/${activeClient.id}` : '/clients')}
+          style={{ marginBottom: '1rem' }}
+        >
+          ← Back
+        </button>
         <h1><span className="gradient-text">Influencer</span> Scout</h1>
         <p>Strategic Creator Discovery</p>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
@@ -11,6 +12,7 @@ const markdownLinkComponents = {
 };
 
 export default function LinkedInDrafts() {
+  const navigate = useNavigate();
   const { activeClient, refreshClients } = useClient();
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,6 +68,13 @@ export default function LinkedInDrafts() {
       <div className="page-header">
         <div className="linkedin-header-row">
           <div>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => navigate(activeClient ? `/gmm/${activeClient.id}` : '/clients')}
+              style={{ marginBottom: '1rem' }}
+            >
+              ← Back
+            </button>
             <h1><span className="gradient-text">{activeClient?.brand_name || 'Grest'} LinkedIn</span> Agent</h1>
             <p>Automated B2B/B2C content drafted from the absolute latest industry news.</p>
           </div>

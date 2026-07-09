@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
@@ -12,6 +13,7 @@ const markdownLinkComponents = {
 };
 
 export default function LinkedInStorage() {
+  const navigate = useNavigate();
   const { activeClient } = useClient();
   const [drafts, setDrafts] = useState([]);
   const [selectedDraftId, setSelectedDraftId] = useState(null);
@@ -65,6 +67,13 @@ export default function LinkedInStorage() {
     <div className="linkedin-storage-page">
       <div className="page-header">
         <div>
+          <button
+            className="btn btn-sm btn-secondary"
+            onClick={() => navigate(activeClient ? `/gmm/${activeClient.id}` : '/clients')}
+            style={{ marginBottom: '1rem' }}
+          >
+            ← Back
+          </button>
           <h2>LinkedIn Storage 🗄️</h2>
           <p className="subtitle">Review your daily automated news drafts.</p>
         </div>
