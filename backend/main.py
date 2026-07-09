@@ -19,10 +19,11 @@ import pymongo
 # Ensure the backend directory is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_generated_scripts, save_generated_scripts, db
+from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_generated_scripts, save_generated_scripts, load_voice_sample, save_voice_sample, load_creative_studio_state, save_creative_studio_state, db
 from models import (
     ClientCreate,
     BrandGuardianOutput,
+    ContentConcept,
     ContentFormat,
     ContentStrategistOutput,
     GeneratedScript,
@@ -39,6 +40,17 @@ from models import (
     GMMGenerateResponse,
     GMMBrandScrapeRequest,
     GMMBrandScrapeResponse,
+    VoiceSample,
+    VoiceSampleUpdate,
+    KeywordPlannerRequest,
+    KeywordPlannerOutput,
+    StructuralDesignerRequest,
+    StructuralDesignerOutput,
+    StructureOption,
+    KeywordPhrase,
+    CreativeStudioScriptWriterRequest,
+    CreativeStudioScriptWriterOutput,
+    CreativeStudioState,
 )
 from agents.trend_scout import TrendScoutAgent
 from agents.gmm_news_scout import GMMNewsScoutAgent
@@ -51,6 +63,10 @@ from agents.script_writer import ScriptWriterAgent
 from agents.brand_guardian import BrandGuardianAgent
 from agents.linkedin_writer import LinkedInWriterAgent, LinkedInDraftOutput
 from agents.instagram_script_writer import InstagramScriptWriterAgent
+from agents.keyword_planner import KeywordPlannerAgent
+from agents.structural_designer import StructuralDesignerAgent
+from pipeline import execute_pipeline
+from autonomous import autonomous_loop, get_autonomous_config, get_recent_cycles, load_covered_topics, run_cycle
 from services.news_service import NewsService
 from services.analytics_service import AnalyticsService
 from services.format_service import FormatService
@@ -131,9 +147,29 @@ async def lifespan(app: FastAPI):
         logger.warning("⚠️  APScheduler not installed. Daily tasks will not run. Run 'pip install apscheduler'.")
         scheduler = None
 
+    # Autonomous loop — normally runs in the dedicated worker (python worker.py).
+    # Set AUTONOMOUS_MODE=true AND AUTONOMOUS_IN_WEB=true to run it inside this
+    # web process instead (single-service deployments / local dev).
+    autonomous_stop = None
+    auto_cfg = get_autonomous_config()
+    if auto_cfg["enabled"] and auto_cfg["run_in_web"]:
+        import threading
+        autonomous_stop = threading.Event()
+        threading.Thread(
+            target=autonomous_loop,
+            args=(autonomous_stop,),
+            daemon=True,
+            name="wicked-autonomous",
+        ).start()
+        logger.info("🤖 Autonomous loop started inside web process (AUTONOMOUS_IN_WEB=true).")
+    elif auto_cfg["enabled"]:
+        logger.info("🤖 AUTONOMOUS_MODE=true — expecting the dedicated worker (python worker.py) to run the loop.")
+
     yield
 
     logger.info("WICKED Backend shutting down.")
+    if autonomous_stop:
+        autonomous_stop.set()
     if scheduler:
         scheduler.shutdown()
 
@@ -164,97 +200,10 @@ app.add_middleware(
 
 
 # ── Helper: Run Pipeline ─────────────────────────────────────
+# The 5-agent orchestration lives in pipeline.py (shared with autonomous.py).
+# _execute_pipeline is kept as an alias so existing call sites don't change.
 
-def _execute_pipeline(run: PipelineRun) -> None:
-    """Execute the full 5-agent pipeline synchronously (called from background task)."""
-    try:
-        run.status = PipelineStatus.RUNNING
-        inp = run.input
-        logger.info("Pipeline %s started — topic: '%s'", run.id, inp.topic)
-
-        # ── Agent 1: Trend Scout ──────────────────────────────
-        logger.info("[1/5] Trend Scout scanning...")
-        trend_scout = TrendScoutAgent(client_id=inp.client_id)
-        trend_output = trend_scout.run(topic=inp.topic, keywords=inp.keywords)
-        run.trend_output = trend_output
-        logger.info("[1/5] Trend Scout found %d trends", len(trend_output.trends))
-
-        # ── Agent 2: Insight Analyst ──────────────────────────
-        logger.info("[2/5] Insight Analyst analyzing...")
-        insight_analyst = InsightAnalystAgent(client_id=inp.client_id)
-        insight_output = insight_analyst.run(trend_output)
-        run.insight_output = insight_output
-        logger.info("[2/5] Insight Analyst produced %d insights", len(insight_output.insights))
-
-        # ── Agent 3: Content Strategist ───────────────────────
-        logger.info("[3/5] Content Strategist creating concepts...")
-        content_strategist = ContentStrategistAgent(client_id=inp.client_id)
-        strategy_output = content_strategist.run(
-            insight_output,
-            content_format=inp.format,
-            num_concepts=inp.num_concepts,
-        )
-        run.strategy_output = strategy_output
-        logger.info("[3/5] Content Strategist created %d concepts", len(strategy_output.concepts))
-
-        # ── Agent 4: Script Writer (use recommended concept) ──
-        logger.info("[4/5] Script Writer writing...")
-        if strategy_output.concepts:
-            # Find the recommended concept, or use the first one
-            chosen = strategy_output.concepts[0]
-            for c in strategy_output.concepts:
-                if c.id == strategy_output.recommended_concept_id:
-                    chosen = c
-                    break
-
-            script_writer = ScriptWriterAgent(client_id=inp.client_id)
-            script_output = script_writer.run(
-                concept=chosen,
-                style_reference=inp.style_reference,
-            )
-            run.script_output = script_output
-            logger.info("[4/5] Script Writer completed: %s", script_output.script.title)
-
-            # ── Agent 5: Brand Guardian ───────────────────────
-            logger.info("[5/5] Brand Guardian reviewing...")
-            brand_guardian = BrandGuardianAgent(client_id=inp.client_id)
-            guardian_output = brand_guardian.run(script_output)
-            run.guardian_output = guardian_output
-            logger.info(
-                "[5/5] Brand Guardian score: %.0f/100 — %s",
-                guardian_output.overall_score,
-                "APPROVED ✅" if guardian_output.approved else "NEEDS WORK ⚠️"
-            )
-
-            # Persist the script
-            _persist_script(script_output.script, guardian_output)
-        else:
-            logger.warning("[4/5] No concepts generated — skipping script writing.")
-            run.error = "No content concepts were generated by the strategist."
-
-        run.status = PipelineStatus.COMPLETED
-        run.completed_at = datetime.utcnow()
-        logger.info("Pipeline %s completed successfully!", run.id)
-
-    except Exception as e:
-        logger.error("Pipeline %s failed: %s", run.id, e, exc_info=True)
-        run.status = PipelineStatus.FAILED
-        run.error = str(e)
-        run.completed_at = datetime.utcnow()
-
-
-def _persist_script(script: GeneratedScript, guardian: BrandGuardianOutput) -> None:
-    """Save a generated script to the JSON persistence file."""
-    try:
-        scripts = load_generated_scripts()
-        script_data = script.model_dump(mode="json")
-        script_data["guardian_score"] = guardian.overall_score
-        script_data["guardian_approved"] = guardian.approved
-        scripts.append(script_data)
-        save_generated_scripts(scripts)
-        logger.info("Script persisted. Total scripts: %d", len(scripts))
-    except Exception as e:
-        logger.error("Failed to persist script: %s", e)
+_execute_pipeline = execute_pipeline
 
 
 # ══════════════════════════════════════════════════════════════
@@ -366,6 +315,36 @@ async def list_pipeline_runs():
         }
         for run in pipeline_runs.values()
     ]
+
+
+# ── Autonomous Mode ───────────────────────────────────────────
+
+@app.get("/autonomous/status", tags=["Autonomous"])
+async def autonomous_status():
+    """Inspect the autonomous loop: config, covered-topics count, recent cycle history."""
+    cfg = get_autonomous_config()
+    return {
+        "enabled": cfg["enabled"],
+        "runs_in_web_process": cfg["run_in_web"],
+        "interval_minutes": cfg["interval_minutes"],
+        "client_id": cfg["client_id"],
+        "topic": cfg["topic"],
+        "keywords": cfg["keywords"],
+        "covered_topics_count": len(load_covered_topics()),
+        "recent_cycles": get_recent_cycles(limit=20),
+    }
+
+
+@app.post("/autonomous/trigger", tags=["Autonomous"])
+async def autonomous_trigger(background_tasks: BackgroundTasks):
+    """
+    Manually force ONE autonomous cycle right now (dedupe check included).
+    Works even when AUTONOMOUS_MODE=false. Check /autonomous/status for the outcome.
+    """
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured. Set it in .env.")
+    background_tasks.add_task(run_cycle)
+    return {"message": "Autonomous cycle triggered. Poll /autonomous/status for the result."}
 
 
 # ── Individual Agents ─────────────────────────────────────────
@@ -503,6 +482,99 @@ async def generate_instagram_script():
     script = agent.run(news, format_item)
     
     return script
+
+# ── Creative Studio: Keyword Planner + pipeline state ─────────
+
+@app.post("/api/creative-studio/keyword-planner", response_model=KeywordPlannerOutput, tags=["Creative Studio"])
+async def run_keyword_planner(request: KeywordPlannerRequest):
+    """Auto-fetch what's currently trending (no manual topic) and return
+    7-10 video-style keyword phrases."""
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
+    agent = KeywordPlannerAgent(client_id=request.client_id)
+    return agent.run()
+
+
+@app.get("/api/creative-studio/state", response_model=CreativeStudioState, tags=["Creative Studio"])
+async def get_creative_studio_state(client_id: str):
+    """Fetch this client's carried-forward Creative Studio selections."""
+    return load_creative_studio_state(client_id)
+
+
+@app.put("/api/creative-studio/state", response_model=CreativeStudioState, tags=["Creative Studio"])
+async def update_creative_studio_state(state: CreativeStudioState):
+    """Persist this client's carried-forward Creative Studio selections."""
+    record = state.model_dump(mode="json")
+    save_creative_studio_state(state.client_id, record)
+    return load_creative_studio_state(state.client_id)
+
+
+@app.post("/api/creative-studio/structural-designer", response_model=StructuralDesignerOutput, tags=["Creative Studio"])
+async def run_structural_designer(request: StructuralDesignerRequest):
+    """Given a client, design script structures from the keywords already
+    carried forward from Keyword Planner."""
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
+
+    state = load_creative_studio_state(request.client_id)
+    raw_keywords = state.get("selected_keywords", [])
+    if not raw_keywords:
+        raise HTTPException(status_code=400, detail="No keywords carried forward from Keyword Planner yet.")
+
+    keywords = [KeywordPhrase(**k) for k in raw_keywords]
+    agent = StructuralDesignerAgent(client_id=request.client_id)
+    return agent.run(keywords)
+
+
+@app.post("/api/creative-studio/script-writer", response_model=CreativeStudioScriptWriterOutput, tags=["Creative Studio"])
+async def run_creative_studio_script_writer(request: CreativeStudioScriptWriterRequest):
+    """Given a client, write full scripts from the structures already
+    carried forward from Structural Designer, applying script_writing_voice
+    strictly."""
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
+
+    state = load_creative_studio_state(request.client_id)
+    raw_structures = state.get("selected_structures", [])
+    if not raw_structures:
+        raise HTTPException(status_code=400, detail="No structures carried forward from Structural Designer yet.")
+
+    structures = [StructureOption(**s) for s in raw_structures]
+    agent = ScriptWriterAgent(client_id=request.client_id)
+
+    scripts = []
+    for structure in structures:
+        concept = ContentConcept(
+            title=structure.source_keyword or structure.hook_direction[:60],
+            hook=structure.hook_direction,
+            concept_summary=" -> ".join(structure.beat_outline),
+            storytelling_framework="Structural Designer output",
+            trend_reference=structure.source_keyword,
+            format=ContentFormat.INSTAGRAM_REEL,
+        )
+        result = agent.run(concept, structure=structure)
+        scripts.append(result.script)
+
+    return CreativeStudioScriptWriterOutput(scripts=scripts)
+
+# ── Voice Sample (account-wide) ──────────────────────────────
+
+@app.get("/api/voice-sample", response_model=VoiceSample, tags=["Voice Sample"])
+async def get_voice_sample():
+    """Fetch the account-wide Voice Sample record (seeded on first run)."""
+    return load_voice_sample()
+
+
+@app.put("/api/voice-sample", response_model=VoiceSample, tags=["Voice Sample"])
+async def update_voice_sample(update: VoiceSampleUpdate):
+    """Persist edits to the account-wide Voice Sample record."""
+    record = {
+        "script_writing_voice": update.script_writing_voice,
+        "idea_categorization_voice": update.idea_categorization_voice,
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    save_voice_sample(record)
+    return record
 
 # ── Analytics ─────────────────────────────────────────────────
 

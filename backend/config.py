@@ -23,6 +23,8 @@ DATA_DIR = BASE_DIR / "data"
 CLIENTS_DIR = DATA_DIR / "clients"
 SCRIPTS_FILE = DATA_DIR / "generated_scripts.json"
 COVERED_INFLUENCERS_FILE = DATA_DIR / "covered_influencers.json"
+VOICE_SAMPLE_FILE = DATA_DIR / "voice_sample.json"
+CREATIVE_STUDIO_STATE_FILE = DATA_DIR / "creative_studio_state.json"
 
 
 class Settings(BaseSettings):
@@ -179,6 +181,112 @@ def delete_client_profile(client_id: str) -> bool:
 def load_brand_profile() -> dict:
     """Fallback for backwards compatibility, loads the first client or generic."""
     return load_client_profile("generic")
+
+
+# ── Voice Sample (account-wide, single record — not per-client) ──────
+
+def load_voice_sample() -> dict:
+    """Load the account-wide Voice Sample record, seeding it with the
+    default reference content on first run if none exists yet."""
+    if db is not None:
+        try:
+            doc = db.voice_sample.find_one({"id": "voice_sample"}, {"_id": 0})
+            if doc:
+                return doc
+        except Exception as e:
+            logger.error(f"Failed to fetch voice sample from MongoDB: {e}")
+
+    if VOICE_SAMPLE_FILE.exists():
+        try:
+            with open(VOICE_SAMPLE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Failed to read {VOICE_SAMPLE_FILE}: {e}")
+
+    from data.voice_sample_seed import SCRIPT_WRITING_VOICE_SEED, IDEA_CATEGORIZATION_VOICE_SEED
+    seed = {
+        "id": "voice_sample",
+        "script_writing_voice": SCRIPT_WRITING_VOICE_SEED,
+        "idea_categorization_voice": IDEA_CATEGORIZATION_VOICE_SEED,
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    save_voice_sample(seed)
+    return seed
+
+
+def _load_creative_studio_state_file() -> dict:
+    if CREATIVE_STUDIO_STATE_FILE.exists():
+        try:
+            with open(CREATIVE_STUDIO_STATE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Could not read {CREATIVE_STUDIO_STATE_FILE}: {e}")
+    return {}
+
+
+def load_creative_studio_state(client_id: str) -> dict:
+    """Load this client's Creative Studio pipeline state (selections carried
+    forward between Keyword Planner -> Structural Designer -> Script Writer)."""
+    if db is not None:
+        try:
+            doc = db.creative_studio_state.find_one({"client_id": client_id}, {"_id": 0})
+            if doc:
+                return doc
+        except Exception as e:
+            logger.error(f"Failed to fetch creative studio state for '{client_id}' from MongoDB: {e}")
+
+    state = _load_creative_studio_state_file().get(client_id)
+    if state:
+        return state
+
+    return {"client_id": client_id, "selected_keywords": [], "selected_structures": []}
+
+
+def save_creative_studio_state(client_id: str, data: dict) -> None:
+    """Persist this client's Creative Studio pipeline state to both MongoDB
+    and local storage."""
+    record = {**data, "client_id": client_id, "updated_at": datetime.utcnow().isoformat()}
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        all_state = _load_creative_studio_state_file()
+        all_state[client_id] = record
+        with open(CREATIVE_STUDIO_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(all_state, f, indent=2, ensure_ascii=False)
+    except IOError as e:
+        logger.error(f"Failed to save {CREATIVE_STUDIO_STATE_FILE}: {e}")
+
+    if db is not None:
+        try:
+            db.creative_studio_state.update_one(
+                {"client_id": client_id}, {"$set": record}, upsert=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to save creative studio state for '{client_id}' to MongoDB: {e}")
+
+
+def save_voice_sample(data: dict) -> None:
+    """Persist the account-wide Voice Sample record to both MongoDB and
+    local storage, following the same dual-write pattern as client
+    profiles."""
+    record = {**data, "id": "voice_sample"}
+
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(VOICE_SAMPLE_FILE, "w", encoding="utf-8") as f:
+            json.dump(record, f, indent=2, ensure_ascii=False)
+    except IOError as e:
+        logger.error(f"Failed to save {VOICE_SAMPLE_FILE}: {e}")
+
+    if db is not None:
+        try:
+            db.voice_sample.update_one(
+                {"id": "voice_sample"}, {"$set": record}, upsert=True
+            )
+        except Exception as e:
+            logger.error(f"Failed to save voice sample to MongoDB: {e}")
 
 
 def load_content_templates() -> dict:
