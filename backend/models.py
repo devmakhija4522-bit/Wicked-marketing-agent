@@ -230,6 +230,82 @@ class ClientProfile(BaseModel):
     content_philosophy: dict = Field(default_factory=dict)
     linkedin_references: list[str] = Field(default_factory=list)
 
+# ── Voice Sample (account-wide, not per-client) ───────────────
+
+class VoiceSample(BaseModel):
+    """Account-wide creative voice reference used by Structural Designer
+    and Script Writer, alongside (not instead of) each client's own
+    brand profile."""
+    script_writing_voice: str = ""
+    idea_categorization_voice: str = ""
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class VoiceSampleUpdate(BaseModel):
+    script_writing_voice: str = ""
+    idea_categorization_voice: str = ""
+
+
+# ── Creative Studio: Keyword Planner (Phase 2) ────────────────
+
+class KeywordPhrase(BaseModel):
+    """A single video-search-style keyword phrase suggested for a topic."""
+    phrase: str
+    source_note: str = ""
+
+
+class KeywordPlannerRequest(BaseModel):
+    client_id: str
+
+
+class KeywordPlannerOutput(BaseModel):
+    keywords: list[KeywordPhrase] = Field(default_factory=list)
+    sources_used: list[str] = Field(default_factory=list)
+    sources_skipped: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+# ── Creative Studio: Structural Designer (Phase 3) ────────────
+
+class StructureOption(BaseModel):
+    """A script structure option — hook direction + beat outline, not a
+    full script yet."""
+    hook_direction: str
+    beat_outline: list[str] = Field(default_factory=list)
+    source_keyword: str = ""
+
+
+class StructuralDesignerRequest(BaseModel):
+    client_id: str
+
+
+class StructuralDesignerOutput(BaseModel):
+    structures: list[StructureOption] = Field(default_factory=list)
+    note: str = ""
+
+
+# ── Creative Studio: Script Writer (Phase 4) ──────────────────
+
+class CreativeStudioScriptWriterRequest(BaseModel):
+    client_id: str
+
+
+class CreativeStudioScriptWriterOutput(BaseModel):
+    scripts: list[GeneratedScript] = Field(default_factory=list)
+    note: str = ""
+
+
+# ── Creative Studio: per-client pipeline state ────────────────
+# Carries selections forward between Keyword Planner -> Structural
+# Designer -> Script Writer within a client's Creative Studio tab.
+
+class CreativeStudioState(BaseModel):
+    client_id: str
+    selected_keywords: list[KeywordPhrase] = Field(default_factory=list)
+    selected_structures: list[dict] = Field(default_factory=list)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # ── GMM Models (Grest Marketing Manager) ──────────────────────
 
 class GMMResearchRequest(BaseModel):

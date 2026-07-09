@@ -9,12 +9,14 @@ import logging
 from typing import Optional
 
 from agents.base_agent import BaseAgent
+from config import load_voice_sample
 from models import (
     ContentConcept,
     ContentFormat,
     GeneratedScript,
     ScriptSection,
     ScriptWriterOutput,
+    StructureOption,
     StyleAnalysisResult,
 )
 from services.style_analyzer import analyze_style
@@ -102,6 +104,7 @@ Include suggested hashtags and caption text.
         self,
         concept: ContentConcept,
         style_reference: str = "",
+        structure: Optional[StructureOption] = None,
     ) -> ScriptWriterOutput:
         """
         Write a complete Hinglish script for a content concept.
@@ -109,11 +112,33 @@ Include suggested hashtags and caption text.
         Args:
             concept: The content concept to script.
             style_reference: Optional text whose writing style to mimic.
+            structure: Optional structure from Structural Designer (hook
+                direction + beat outline) to follow. When given, the
+                account-wide script_writing_voice is applied strictly —
+                hook distance, bridge technique, and tone rules are
+                non-negotiable, not optional flavor.
 
         Returns:
             ScriptWriterOutput with the complete script.
         """
         self.logger.info("Writing script for concept: %s", concept.title)
+
+        structure_block = ""
+        if structure is not None:
+            script_voice = load_voice_sample().get("script_writing_voice", "")
+            beats = "\n".join(f"  - {b}" for b in structure.beat_outline)
+            structure_block = f"""
+=== STRUCTURE TO FOLLOW (from Structural Designer — non-negotiable) ===
+Hook Direction: {structure.hook_direction}
+Beat Outline:
+{beats}
+Source Keyword: {structure.source_keyword}
+=== END STRUCTURE ===
+
+=== SCRIPT WRITING VOICE (apply strictly — hook distance, bridge technique, and tone rules are non-negotiable, not optional flavor) ===
+{script_voice}
+=== END SCRIPT WRITING VOICE ===
+"""
 
         # Analyze writing style if reference provided
         style_info = ""
@@ -130,7 +155,7 @@ Include suggested hashtags and caption text.
         spec = format_specs.get(concept.format, format_specs[ContentFormat.INSTAGRAM_REEL])
 
         prompt = f"""Write a complete Hinglish script for this content concept.
-
+{structure_block}
 CONCEPT:
   Title: {concept.title}
   Hook Line: {concept.hook}

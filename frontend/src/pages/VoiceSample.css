@@ -1,0 +1,76 @@
+.voice-sample-container {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.voice-sample-header {
+  margin-bottom: 2rem;
+}
+
+.voice-sample-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(90deg, #e94560, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.voice-sample-header p {
+  color: var(--text-secondary);
+  max-width: 700px;
+}
+
+.voice-sample-field {
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.voice-sample-field label {
+  display: block;
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.25rem;
+}
+
+.voice-sample-field .field-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.voice-sample-field textarea {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.voice-sample-field textarea:focus {
+  outline: none;
+  border-color: var(--accent-crimson);
+}
+
+.voice-sample-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.saved-indicator {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.voice-sample-shimmer {
+  height: 200px;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+}

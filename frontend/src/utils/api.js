@@ -124,6 +124,38 @@ export const api = {
   generateInstagramScript: () =>
     apiRequest('/instagram/generate-script', { method: 'GET' }),
 
+  // Voice Sample (account-wide)
+  getVoiceSample: () =>
+    apiRequest('/api/voice-sample', { method: 'GET' }),
+
+  saveVoiceSample: (data) =>
+    apiRequest('/api/voice-sample', { method: 'PUT', body: data }),
+
+  // Creative Studio: Keyword Planner + pipeline state
+  runKeywordPlanner: (clientId) =>
+    apiRequest('/api/creative-studio/keyword-planner', {
+      method: 'POST',
+      body: { client_id: clientId },
+    }),
+
+  getCreativeStudioState: (clientId) =>
+    apiRequest(`/api/creative-studio/state?client_id=${clientId}`, { method: 'GET' }),
+
+  saveCreativeStudioState: (data) =>
+    apiRequest('/api/creative-studio/state', { method: 'PUT', body: data }),
+
+  runStructuralDesigner: (clientId) =>
+    apiRequest('/api/creative-studio/structural-designer', {
+      method: 'POST',
+      body: { client_id: clientId },
+    }),
+
+  runCreativeStudioScriptWriter: (clientId) =>
+    apiRequest('/api/creative-studio/script-writer', {
+      method: 'POST',
+      body: { client_id: clientId },
+    }),
+
   // Analytics
   getAnalyticsSummary: (platform = 'All') =>
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
