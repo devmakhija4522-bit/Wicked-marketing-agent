@@ -4,6 +4,12 @@ import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
 import './LinkedInDrafts.css';
 
+// Source/reference links in generated drafts should open in a new tab,
+// not navigate the user away from the app.
+const markdownLinkComponents = {
+  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+};
+
 export default function LinkedInDrafts() {
   const { activeClient, refreshClients } = useClient();
   const [draft, setDraft] = useState('');
@@ -177,7 +183,7 @@ export default function LinkedInDrafts() {
                   </div>
                 </div>
                 <div className="linkedin-mockup-body">
-                  <ReactMarkdown>{draft}</ReactMarkdown>
+                  <ReactMarkdown components={markdownLinkComponents}>{draft}</ReactMarkdown>
                 </div>
               </div>
             )}

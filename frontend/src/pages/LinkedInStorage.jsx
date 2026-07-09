@@ -5,6 +5,12 @@ import { api } from '../utils/api.js';
 import './LinkedInStorage.css';
 import './LinkedInDrafts.css'; // Reuse Mockup UI CSS
 
+// Source/reference links in generated drafts should open in a new tab,
+// not navigate the user away from the app.
+const markdownLinkComponents = {
+  a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+};
+
 export default function LinkedInStorage() {
   const { activeClient } = useClient();
   const [drafts, setDrafts] = useState([]);
@@ -118,7 +124,7 @@ export default function LinkedInStorage() {
                   </div>
                 </div>
                 <div className="linkedin-mockup-body">
-                  <ReactMarkdown>{draftContent}</ReactMarkdown>
+                  <ReactMarkdown components={markdownLinkComponents}>{draftContent}</ReactMarkdown>
                 </div>
               </div>
             </div>
