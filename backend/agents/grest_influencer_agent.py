@@ -8,7 +8,7 @@ import feedparser
 import httpx
 
 from agents.base_agent import BaseAgent
-from config import settings
+from config import settings, load_covered_influencers, mark_influencers_covered, _normalize_influencer_key
 
 _VERIFY_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -17,6 +17,7 @@ _VERIFY_HEADERS = {
 
 _YOUTUBE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 _YOUTUBE_MAX_INACTIVE_DAYS = 30
+_MAX_COVERED_IN_PROMPT = 40  # cap the "already suggested" list injected into the prompt to bound token growth
 
 class GrestInfluencerAgent(BaseAgent):
     """
@@ -40,6 +41,22 @@ class GrestInfluencerAgent(BaseAgent):
             else f"- Target City (where the influencer or their audience is broadly associated with): {city}"
         )
 
+        covered = load_covered_influencers(self.client_id)
+        covered_keys = {c["key"] for c in covered if c.get("key")}
+        if covered:
+            shown = covered[:_MAX_COVERED_IN_PROMPT]
+            covered_list = "\n".join(f"- {c.get('name') or c.get('handle') or c.get('url')}" for c in shown)
+            already_suggested_block = f"""
+ALREADY SUGGESTED TO THIS CLIENT — DO NOT REPEAT ANY OF THESE:
+{covered_list}
+You MUST find DIFFERENT creators than everyone listed above, even if they'd otherwise
+fit the criteria well. If genuinely no new real, verified creators exist beyond this
+list, it is correct to return fewer results or zero — do not repeat a name from this
+list and do not fabricate a new one just to appear different.
+"""
+        else:
+            already_suggested_block = ""
+
         system_prompt = f"""
 You are an expert Influencer Marketing Strategist working for Grest (grest.in).
 Your task is to find the best influencer matches based on these specific criteria:
@@ -49,7 +66,7 @@ CRITERIA:
 - Category/Niche/Content Style: {category}
 - Follower Count: approximately {follower_count} (a reasonable, good-faith estimate is fine — see note below)
 {city_line}
-
+{already_suggested_block}
 Use the web to search for real, active influencers that match this criteria.
 
 STRICT VERIFICATION & QUALITY CONTROL (BACKEND ONLY):
@@ -100,8 +117,29 @@ Output strictly as a valid JSON array.
 
         if isinstance(result, list):
             result = self._drop_dead_links(result)
+            result = self._drop_already_covered(result, covered_keys)
+            if result:
+                mark_influencers_covered(self.client_id, result)
 
         return json.dumps(result)
+
+    def _drop_already_covered(self, influencers: list, covered_keys: set) -> list:
+        """Belt-and-suspenders: the prompt tells the model not to repeat
+        already-suggested creators, but LLMs don't always follow instructions
+        perfectly. This drops any result that slips through anyway, so a
+        repeat can't reach the user even if the model ignores the instruction."""
+        if not covered_keys:
+            return influencers
+        fresh = []
+        for inf in influencers:
+            if not isinstance(inf, dict):
+                continue
+            identifier = (inf.get("handle") or inf.get("url") or inf.get("name") or "").strip()
+            if identifier and _normalize_influencer_key(identifier) in covered_keys:
+                self.logger.warning(f"Dropping repeat influencer (already suggested previously): {identifier}")
+                continue
+            fresh.append(inf)
+        return fresh
 
     def _drop_dead_links(self, influencers: list) -> list:
         """The model's own "don't hallucinate" instructions are not reliable enough

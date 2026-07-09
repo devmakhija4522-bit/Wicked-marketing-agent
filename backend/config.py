@@ -6,6 +6,7 @@ Only GEMINI_API_KEY is required — all other keys are optional enhancements.
 
 import os
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings
@@ -21,6 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CLIENTS_DIR = DATA_DIR / "clients"
 SCRIPTS_FILE = DATA_DIR / "generated_scripts.json"
+COVERED_INFLUENCERS_FILE = DATA_DIR / "covered_influencers.json"
 
 
 class Settings(BaseSettings):
@@ -197,3 +199,89 @@ def save_generated_scripts(scripts: list[dict]) -> None:
     SCRIPTS_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(SCRIPTS_FILE, "w", encoding="utf-8") as f:
         json.dump(scripts, f, indent=2, ensure_ascii=False, default=str)
+
+
+# ── Covered-influencers store (per-client dedupe across repeat searches) ──
+# Mirrors autonomous.py's covered-topics pattern: without this, each
+# influencer search is a stateless call with the same criteria, so Gemini's
+# search grounding keeps surfacing the same top-ranked names (or fabricates
+# once it runs out of "different" ideas). Tracking what's already been
+# suggested lets us tell the model explicitly not to repeat it.
+
+def _normalize_influencer_key(identifier: str) -> str:
+    return " ".join(identifier.lower().split())
+
+
+def _load_covered_influencers_file() -> dict:
+    if COVERED_INFLUENCERS_FILE.exists():
+        try:
+            with open(COVERED_INFLUENCERS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Could not read {COVERED_INFLUENCERS_FILE}: {e}")
+    return {}
+
+
+def load_covered_influencers(client_id: str) -> list[dict]:
+    """Influencers already suggested to this client, most recently suggested
+    first. Each entry has key/name/handle/url/covered_at."""
+    if db is not None:
+        try:
+            docs = list(
+                db.covered_influencers.find({"client_id": client_id}, {"_id": 0})
+                .sort("covered_at", -1)
+            )
+            if docs:
+                return docs
+        except Exception as e:
+            logger.error(f"Failed to load covered influencers for '{client_id}' from MongoDB: {e}")
+
+    entries = _load_covered_influencers_file().get(client_id, {})
+    return sorted(entries.values(), key=lambda e: e.get("covered_at", ""), reverse=True)
+
+
+def mark_influencers_covered(client_id: str, influencers: list[dict]) -> None:
+    """Persist newly-suggested influencers (by handle/URL/name) as covered
+    for this client, so the next search knows to avoid repeating them."""
+    now = datetime.utcnow().isoformat()
+    entries = {}
+    for inf in influencers:
+        if not isinstance(inf, dict):
+            continue
+        identifier = (inf.get("handle") or inf.get("url") or inf.get("name") or "").strip()
+        if not identifier:
+            continue
+        key = _normalize_influencer_key(identifier)
+        entries[key] = {
+            "key": key,
+            "name": inf.get("name", ""),
+            "handle": inf.get("handle", ""),
+            "url": inf.get("url", ""),
+            "covered_at": now,
+        }
+    if not entries:
+        return
+
+    if db is not None:
+        try:
+            for key, entry in entries.items():
+                db.covered_influencers.update_one(
+                    {"client_id": client_id, "key": key},
+                    {"$set": {"client_id": client_id, **entry}},
+                    upsert=True,
+                )
+        except Exception as e:
+            logger.error(f"Failed to save covered influencers for '{client_id}' to MongoDB: {e}")
+
+    try:
+        data = _load_covered_influencers_file()
+        client_entries = data.get(client_id, {})
+        client_entries.update(entries)
+        data[client_id] = client_entries
+        COVERED_INFLUENCERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(COVERED_INFLUENCERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except IOError as e:
+        logger.error(f"Failed to save {COVERED_INFLUENCERS_FILE}: {e}")
