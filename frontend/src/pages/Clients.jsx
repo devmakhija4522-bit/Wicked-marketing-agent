@@ -4,8 +4,7 @@ import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
 
 export default function Clients() {
-  console.log("Clients page loaded - checking for GMM Console update!");
-  const { clients, activeClient, switchClient, addClient, removeClient } = useClient();
+  const { clients, activeClient, switchClient, addClient, removeClient, loading } = useClient();
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
@@ -54,12 +53,17 @@ export default function Clients() {
       <p>Manage your agency's clients and their brand profiles.</p>
 
       <div className="clients-grid" style={{ display: 'grid', gap: '1rem', marginTop: '2rem' }}>
-        {clients.length === 0 && (
+        {loading && (
+          <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', gridColumn: '1 / -1', color: 'var(--text-muted)' }}>
+            <p style={{ margin: 0 }}>Loading clients…</p>
+          </div>
+        )}
+        {!loading && clients.length === 0 && (
           <div className="glass-panel" style={{ padding: '2rem', textAlign: 'center', gridColumn: '1 / -1', color: 'var(--text-muted)' }}>
             <p style={{ margin: 0 }}>No clients yet — click + to add one</p>
           </div>
         )}
-        {clients.map(client => (
+        {!loading && clients.map(client => (
           <div 
             key={client.id} 
             className={`glass-panel ${activeClient?.id === client.id ? 'active' : ''}`}
