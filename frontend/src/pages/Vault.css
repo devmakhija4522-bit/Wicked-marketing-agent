@@ -128,3 +128,36 @@
 .empty-state p {
   color: var(--text-secondary);
 }
+
+.vault-bundle {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.vault-bundle-section h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.vault-bundle-hook {
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.vault-bundle-section ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vault-bundle-caption {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}

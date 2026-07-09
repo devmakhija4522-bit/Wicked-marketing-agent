@@ -259,6 +259,11 @@
   padding: 24px;
 }
 
+.sw-script-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .pipeline-stages {
   display: flex;
   flex-direction: column;

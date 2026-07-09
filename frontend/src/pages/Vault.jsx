@@ -2,6 +2,46 @@ import { useState, useEffect } from 'react';
 import { api } from '../utils/api.js';
 import './Vault.css';
 
+function VaultContent({ content }) {
+  if (typeof content === 'string') {
+    return <div className="script-body whitespace-pre-wrap">{content}</div>;
+  }
+
+  if (content && typeof content === 'object' && content.script) {
+    const { keyword, structure, script } = content;
+    return (
+      <div className="vault-bundle">
+        {keyword && (
+          <div className="vault-bundle-section">
+            <h4>🔑 Keyword</h4>
+            <p>{keyword.phrase}</p>
+          </div>
+        )}
+        {structure && (
+          <div className="vault-bundle-section">
+            <h4>🧱 Structure</h4>
+            <p className="vault-bundle-hook">{structure.hook_direction}</p>
+            {structure.beat_outline && (
+              <ul>
+                {structure.beat_outline.map((beat, i) => <li key={i}>{beat}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+        <div className="vault-bundle-section">
+          <h4>✍️ Script</h4>
+          <div className="script-body whitespace-pre-wrap">{script.full_script_text || 'No script text.'}</div>
+          {script.caption_suggestion && (
+            <p className="vault-bundle-caption"><strong>Caption:</strong> {script.caption_suggestion}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="script-body whitespace-pre-wrap">{JSON.stringify(content, null, 2)}</div>;
+}
+
 export default function Vault() {
   const [scripts, setScripts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,9 +115,7 @@ export default function Vault() {
 
             {expandedScript === idx && script.content && (
               <div className="vault-item-content">
-                <div className="script-body whitespace-pre-wrap">
-                  {script.content}
-                </div>
+                <VaultContent content={script.content} />
               </div>
             )}
           </div>
