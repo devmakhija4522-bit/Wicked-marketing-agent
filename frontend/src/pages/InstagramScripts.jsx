@@ -25,14 +25,19 @@ export default function InstagramScripts() {
   const [sdResult, setSdResult] = useState(null);
   const [selectedStructures, setSelectedStructures] = useState({});
   const [movingStructures, setMovingStructures] = useState(false);
-  const [movedStructuresCount, setMovedStructuresCount] = useState(null);
+  const [movedStructures, setMovedStructures] = useState(null);
 
   // --- Script Writer ---
   const [swLoading, setSwLoading] = useState(false);
   const [swResult, setSwResult] = useState(null);
+  const [savingScriptIds, setSavingScriptIds] = useState({});
+  const [savedScriptIds, setSavedScriptIds] = useState({});
 
   const hasMovedKeywords = movedKeywords !== null && movedKeywords.length > 0;
-  const hasMovedStructures = movedStructuresCount !== null && movedStructuresCount > 0;
+  const hasMovedStructures = movedStructures !== null && movedStructures.length > 0;
+
+  const findKeywordForStructure = (structure) =>
+    (movedKeywords || []).find((k) => k.phrase === structure?.source_keyword) || null;
 
   const handleFetchTrendingKeywords = async () => {
     if (!activeClient) return;
@@ -89,7 +94,7 @@ export default function InstagramScripts() {
     setSdLoading(true);
     setSdResult(null);
     setSelectedStructures({});
-    setMovedStructuresCount(null);
+    setMovedStructures(null);
     try {
       const data = await api.runStructuralDesigner(activeClient.id);
       setSdResult(data);
@@ -122,8 +127,10 @@ export default function InstagramScripts() {
         selected_keywords: movedKeywords || [],
         selected_structures: chosen,
       });
-      setMovedStructuresCount(chosen.length);
+      setMovedStructures(chosen);
       setSwResult(null);
+      setSavingScriptIds({});
+      setSavedScriptIds({});
     } catch (e) {
       console.error(e);
     } finally {
@@ -135,6 +142,8 @@ export default function InstagramScripts() {
     if (!activeClient || !hasMovedStructures) return;
     setSwLoading(true);
     setSwResult(null);
+    setSavingScriptIds({});
+    setSavedScriptIds({});
     try {
       const data = await api.runCreativeStudioScriptWriter(activeClient.id);
       setSwResult(data);
@@ -142,6 +151,30 @@ export default function InstagramScripts() {
       console.error(e);
     } finally {
       setSwLoading(false);
+    }
+  };
+
+  const handleSaveScript = async (script, index) => {
+    if (!activeClient) return;
+    const structure = (movedStructures || [])[index] || null;
+    const keyword = findKeywordForStructure(structure);
+    const dateStr = new Date().toLocaleDateString();
+    const nameSource = structure?.source_keyword || script.title || 'Script';
+    const title = `${activeClient.brand_name} — ${nameSource} — ${dateStr}`;
+
+    setSavingScriptIds((prev) => ({ ...prev, [script.id]: true }));
+    try {
+      await api.saveToVault({
+        title,
+        format: 'Creative Studio',
+        content: { keyword, structure, script },
+      });
+      setSavedScriptIds((prev) => ({ ...prev, [script.id]: true }));
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save to Vault.');
+    } finally {
+      setSavingScriptIds((prev) => ({ ...prev, [script.id]: false }));
     }
   };
 
@@ -309,7 +342,7 @@ export default function InstagramScripts() {
               )}
 
               {hasMovedStructures && (
-                <span className="kp-moved-indicator">Carried forward: {movedStructuresCount} structure{movedStructuresCount === 1 ? '' : 's'} ✓</span>
+                <span className="kp-moved-indicator">Carried forward: {movedStructures.length} structure{movedStructures.length === 1 ? '' : 's'} ✓</span>
               )}
             </>
           )}
@@ -353,7 +386,7 @@ export default function InstagramScripts() {
                     </div>
                   ) : (
                     <div className="sw-scripts-list">
-                      {swResult.scripts.map((script) => (
+                      {swResult.scripts.map((script, index) => (
                         <div key={script.id} className="script-container glass sw-script-card">
                           <div className="script-header">
                             <h2>{script.title}</h2>
@@ -376,9 +409,19 @@ export default function InstagramScripts() {
                             </div>
                           )}
 
-                          <button className="btn btn-secondary btn-full" onClick={() => handleCopy(script.full_script_text)}>
-                            📋 Copy Script
-                          </button>
+                          <div className="sw-script-actions">
+                            <button className="btn btn-secondary" onClick={() => handleCopy(script.full_script_text)}>
+                              📋 Copy Script
+                            </button>
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => handleSaveScript(script, index)}
+                              disabled={savingScriptIds[script.id] || savedScriptIds[script.id]}
+                            >
+                              {savingScriptIds[script.id] ? <span className="btn-spinner" /> : null}
+                              {savedScriptIds[script.id] ? '✅ Saved' : '💾 Save'}
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
