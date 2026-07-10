@@ -68,6 +68,10 @@
   gap: 1rem;
 }
 
+.vault-delete-btn:hover:not(:disabled) {
+  color: #ef4444;
+}
+
 .score-badge {
   font-size: 0.85rem;
   padding: 0.3rem 0.8rem;

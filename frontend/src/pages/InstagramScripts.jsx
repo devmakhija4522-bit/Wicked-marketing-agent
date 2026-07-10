@@ -215,6 +215,7 @@ export default function InstagramScripts() {
     setSavingScriptIds((prev) => ({ ...prev, [script.id]: true }));
     try {
       await api.saveToVault({
+        client_id: activeClient.id,
         title,
         format: 'Creative Studio',
         content: { keyword, structure, script },
@@ -290,6 +291,7 @@ export default function InstagramScripts() {
     setRemixMoving(true);
     try {
       await api.saveToVault({
+        client_id: activeClient.id,
         title,
         format: 'Creative Studio',
         content: { keyword: null, structure: remixResult.structure, script: remixResult.script },
