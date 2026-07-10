@@ -42,6 +42,8 @@ from models import (
     GMMBrandScrapeResponse,
     VoiceSample,
     VoiceSampleUpdate,
+    RemixRequest,
+    RemixOutput,
     KeywordPlannerRequest,
     KeywordPlannerOutput,
     StructuralDesignerRequest,
@@ -65,6 +67,7 @@ from agents.linkedin_writer import LinkedInWriterAgent, LinkedInDraftOutput
 from agents.instagram_script_writer import InstagramScriptWriterAgent
 from agents.keyword_planner import KeywordPlannerAgent
 from agents.structural_designer import StructuralDesignerAgent
+from agents.remix_agent import RemixAgent
 from pipeline import execute_pipeline
 from autonomous import autonomous_loop, get_autonomous_config, get_recent_cycles, load_covered_topics, run_cycle
 from services.news_service import NewsService
@@ -575,6 +578,38 @@ async def update_voice_sample(update: VoiceSampleUpdate):
     }
     save_voice_sample(record)
     return record
+
+# ── Remix: paste a link, transcribe, rewrite in your voice ────
+
+@app.post("/api/remix", tags=["Remix"])
+async def run_remix(request: RemixRequest, background_tasks: BackgroundTasks):
+    """Kick off a Remix job: download/transcribe the pasted video link, then
+    rewrite it in the account-wide Voice Sample. Poll /api/jobs/{job_id}."""
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
+    if not request.video_url.strip():
+        raise HTTPException(status_code=400, detail="video_url is required.")
+
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
+
+    def _do_remix():
+        try:
+            background_jobs[job_id]["status"] = "running"
+            agent = RemixAgent()
+            result = agent.run(video_url=request.video_url, tone=request.tone)
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = result.model_dump(mode="json")
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_remix)
+    return {"job_id": job_id}
+
 
 # ── Analytics ─────────────────────────────────────────────────
 

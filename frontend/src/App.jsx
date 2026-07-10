@@ -15,6 +15,7 @@ import Analytics from './pages/Analytics.jsx';
 import LinkedInStorage from './pages/LinkedInStorage.jsx';
 import InfluencerScout from './pages/InfluencerScout.jsx';
 import VoiceSample from './pages/VoiceSample.jsx';
+import Remix from './pages/Remix.jsx';
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="/vault" element={<Vault />} />
           <Route path="/style" element={<StyleProfile />} />
           <Route path="/voice-sample" element={<VoiceSample />} />
+          <Route path="/remix" element={<Remix />} />
           <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
