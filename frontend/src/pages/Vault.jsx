@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
 import './Vault.css';
 
@@ -43,6 +45,8 @@ function VaultContent({ content }) {
 }
 
 export default function Vault() {
+  const navigate = useNavigate();
+  const { activeClient } = useClient();
   const [scripts, setScripts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -80,6 +84,13 @@ export default function Vault() {
   return (
     <div className="vault-container">
       <header className="vault-header">
+        <button
+          className="btn btn-sm btn-secondary"
+          onClick={() => navigate(activeClient ? `/gmm/${activeClient.id}` : '/clients')}
+          style={{ marginBottom: '1rem' }}
+        >
+          ← Back
+        </button>
         <h1>Script Vault</h1>
         <p>Review and export your previously generated WICKED scripts.</p>
       </header>

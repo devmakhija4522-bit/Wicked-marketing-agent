@@ -284,7 +284,7 @@ export default function InstagramScripts() {
   const handleMoveRemixToVault = async () => {
     if (!activeClient || !remixResult?.script || !remixSelected) return;
     const dateStr = new Date().toLocaleDateString();
-    const nameSource = remixResult.structure?.source_keyword || remixResult.script.title || 'Remix';
+    const nameSource = remixResult.script.title || remixResult.structure?.source_keyword || 'Remix';
     const title = `${activeClient.brand_name} — ${nameSource} — ${dateStr}`;
 
     setRemixMoving(true);

@@ -59,6 +59,13 @@ export default function GMMConsole() {
         >
           <span style={{ marginRight: '0.5rem' }}>🔍</span> Influencer Scout
         </button>
+        <button
+          className="btn btn-primary"
+          onClick={() => navigate('/vault')}
+          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
+        >
+          <span style={{ marginRight: '0.5rem' }}>🗄️</span> Vault
+        </button>
       </div>
     </div>
   );
