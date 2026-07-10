@@ -159,6 +159,13 @@ export const api = {
   // Analytics
   getAnalyticsSummary: (platform = 'All') =>
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
+
+  // Remix: paste a link, transcribe, rewrite in your voice
+  runRemix: (videoUrl, tone = '') =>
+    apiRequest('/api/remix', {
+      method: 'POST',
+      body: { video_url: videoUrl, tone },
+    }),
 };
 
 export default api;

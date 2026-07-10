@@ -246,6 +246,27 @@ class VoiceSampleUpdate(BaseModel):
     idea_categorization_voice: str = ""
 
 
+# ── Remix: transcribe + rewrite a video link in the account's voice ──
+
+class RemixRequest(BaseModel):
+    """A pasted Instagram Reel / TikTok / YouTube link to remix."""
+    video_url: str
+    tone: str = ""  # optional override, e.g. "punchy", "story-driven", "educational"
+
+
+class RemixOutput(BaseModel):
+    source_url: str
+    platform: str
+    transcript: str
+    hook_line: str = ""
+    estimated_duration_seconds: int = 0
+    summary: str = ""
+    remixed_hook: str = ""
+    remixed_script: str = ""
+    hook_pattern: str = ""
+    caption_options: list[str] = Field(default_factory=list)
+
+
 # ── Creative Studio: Keyword Planner (Phase 2) ────────────────
 
 class KeywordPhrase(BaseModel):
