@@ -17,6 +17,25 @@ _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _MAX_ATTEMPTS = 4
 _BACKOFF_BASE_SECONDS = 2
 
+# Fallback provider when Gemini is exhausted (quota/rate-limit/server errors)
+# after its own retries above — NVIDIA NIM's free tier, OpenAI-compatible.
+# Text-only: no Google Search grounding (use_search is silently dropped in
+# the fallback) and not used for the Remix feature's audio/video
+# transcription (services/media_transcriber.py stays Gemini-only, since
+# that needs Gemini's Files API for multimodal input).
+#
+# Ordered fastest/most-reliable first, verified directly against this
+# account: small instruct models respond in well under a second; the last
+# entry is a larger, slower-but-more-capable model kept as a final rung
+# rather than the first, so the common case stays fast.
+_NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+_NVIDIA_FALLBACK_MODELS = [
+    "meta/llama-3.1-8b-instruct",
+    "mistralai/mixtral-8x7b-instruct-v0.1",
+    "nvidia/llama-3.3-nemotron-super-49b-v1",
+]
+_NVIDIA_TIMEOUT_SECONDS = 30.0
+
 
 def _is_retryable(exc: Exception) -> bool:
     if isinstance(exc, genai_errors.APIError):
@@ -83,11 +102,70 @@ class LLMService:
                     continue
                 logger.error(f"Gemini generation error: {e}")
                 if _is_retryable(e):
+                    if settings.has_nvidia:
+                        logger.warning(
+                            "Gemini exhausted after %d attempts, falling back to NVIDIA: %s",
+                            _MAX_ATTEMPTS, e,
+                        )
+                        try:
+                            return self._generate_nvidia(prompt, system_prompt, temperature)
+                        except Exception as nvidia_exc:
+                            logger.error(f"NVIDIA fallback also failed: {nvidia_exc}")
+                            raise RuntimeError(
+                                "Gemini is currently experiencing high demand and the NVIDIA "
+                                "fallback also failed. Please try again in a few minutes."
+                            ) from nvidia_exc
                     raise RuntimeError(
                         "Gemini is currently experiencing high demand and didn't respond "
                         "after several retries. Please try again in a few minutes."
                     ) from last_error
                 raise RuntimeError(f"Gemini API error: {e}") from last_error
+
+    def _generate_nvidia(
+        self,
+        prompt: str,
+        system_prompt: Optional[str] = None,
+        temperature: Optional[float] = None,
+    ) -> str:
+        """Cascade through _NVIDIA_FALLBACK_MODELS, returning the first
+        model that responds. Raises RuntimeError only if every model fails."""
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        headers = {
+            "Authorization": f"Bearer {settings.nvidia_api_key}",
+            "Content-Type": "application/json",
+        }
+        body_base = {
+            "messages": messages,
+            "temperature": temperature if temperature is not None else 0.7,
+            "max_tokens": 4096,
+            "stream": False,
+        }
+
+        last_error: Optional[Exception] = None
+        with httpx.Client(timeout=_NVIDIA_TIMEOUT_SECONDS) as client:
+            for model in _NVIDIA_FALLBACK_MODELS:
+                try:
+                    resp = client.post(
+                        f"{_NVIDIA_BASE_URL}/chat/completions",
+                        headers=headers,
+                        json={**body_base, "model": model},
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                    text = data["choices"][0]["message"]["content"]
+                    if text:
+                        logger.info("NVIDIA fallback succeeded with model: %s", model)
+                        return text.strip()
+                except Exception as e:
+                    last_error = e
+                    logger.warning("NVIDIA model '%s' failed, trying next: %s", model, e)
+                    continue
+
+        raise RuntimeError(f"All NVIDIA fallback models failed. Last error: {last_error}")
 
     @staticmethod
     def _extract_text_fallback(response) -> Optional[str]:
