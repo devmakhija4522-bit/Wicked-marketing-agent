@@ -248,23 +248,25 @@ class VoiceSampleUpdate(BaseModel):
 
 # ── Remix: transcribe + rewrite a video link in the account's voice ──
 
-class RemixRequest(BaseModel):
-    """A pasted Instagram Reel / TikTok / YouTube link to remix."""
+class CreativeStudioRemixRequest(BaseModel):
+    """A pasted Instagram Reel / TikTok / YouTube link to remix, scoped to
+    a specific client so it applies that client's brand context."""
+    client_id: str
     video_url: str
     tone: str = ""  # optional override, e.g. "punchy", "story-driven", "educational"
 
 
-class RemixOutput(BaseModel):
-    source_url: str
-    platform: str
-    transcript: str
-    hook_line: str = ""
-    estimated_duration_seconds: int = 0
+class CreativeStudioRemixOutput(BaseModel):
+    """Remix result — a full GeneratedScript (same shape Script Writer
+    produces) plus the derived structure and source transcript, so the
+    frontend can Add+Move this straight to Vault in the same bundle format
+    Content Generator uses."""
+    script: Optional[GeneratedScript] = None
+    structure: Optional[StructureOption] = None
+    transcript: str = ""
+    platform: str = ""
     summary: str = ""
-    remixed_hook: str = ""
-    remixed_script: str = ""
-    hook_pattern: str = ""
-    caption_options: list[str] = Field(default_factory=list)
+    note: str = ""
 
 
 # ── Creative Studio: Keyword Planner (Phase 2) ────────────────

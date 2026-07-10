@@ -105,6 +105,7 @@ Include suggested hashtags and caption text.
         concept: ContentConcept,
         style_reference: str = "",
         structure: Optional[StructureOption] = None,
+        tone: str = "",
     ) -> ScriptWriterOutput:
         """
         Write a complete Hinglish script for a content concept.
@@ -117,6 +118,9 @@ Include suggested hashtags and caption text.
                 account-wide script_writing_voice is applied strictly —
                 hook distance, bridge technique, and tone rules are
                 non-negotiable, not optional flavor.
+            tone: Optional one-off tone override (e.g. "punchy",
+                "story-driven", "educational") layered on top of the voice
+                rules above.
 
         Returns:
             ScriptWriterOutput with the complete script.
@@ -127,6 +131,7 @@ Include suggested hashtags and caption text.
         if structure is not None:
             script_voice = load_voice_sample().get("script_writing_voice", "")
             beats = "\n".join(f"  - {b}" for b in structure.beat_outline)
+            tone_line = f"\nTone override for this script: {tone}." if tone else ""
             structure_block = f"""
 === STRUCTURE TO FOLLOW (from Structural Designer — non-negotiable) ===
 Hook Direction: {structure.hook_direction}
@@ -137,7 +142,14 @@ Source Keyword: {structure.source_keyword}
 
 === SCRIPT WRITING VOICE (apply strictly — hook distance, bridge technique, and tone rules are non-negotiable, not optional flavor) ===
 {script_voice}
-=== END SCRIPT WRITING VOICE ===
+=== END SCRIPT WRITING VOICE ==={tone_line}
+
+=== OUTPUT CLEANLINESS (non-negotiable) ===
+Plain, clean text only in every field — no markdown symbols anywhere (no
+asterisks, no pound signs, no bullet dashes, no backticks). "dialogue" and
+"full_script_text" must read as something a person would actually say out
+loud, not a formatted document.
+=== END OUTPUT CLEANLINESS ===
 """
 
         # Analyze writing style if reference provided

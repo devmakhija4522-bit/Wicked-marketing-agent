@@ -42,8 +42,8 @@ from models import (
     GMMBrandScrapeResponse,
     VoiceSample,
     VoiceSampleUpdate,
-    RemixRequest,
-    RemixOutput,
+    CreativeStudioRemixRequest,
+    CreativeStudioRemixOutput,
     KeywordPlannerRequest,
     KeywordPlannerOutput,
     StructuralDesignerRequest,
@@ -579,12 +579,14 @@ async def update_voice_sample(update: VoiceSampleUpdate):
     save_voice_sample(record)
     return record
 
-# ── Remix: paste a link, transcribe, rewrite in your voice ────
+# ── Creative Studio: Remix (independent alternate entry, paste a link) ──
 
-@app.post("/api/remix", tags=["Remix"])
-async def run_remix(request: RemixRequest, background_tasks: BackgroundTasks):
+@app.post("/api/creative-studio/remix", tags=["Creative Studio"])
+async def run_creative_studio_remix(request: CreativeStudioRemixRequest, background_tasks: BackgroundTasks):
     """Kick off a Remix job: download/transcribe the pasted video link, then
-    rewrite it in the account-wide Voice Sample. Poll /api/jobs/{job_id}."""
+    write a full script from it via the same ScriptWriterAgent Content
+    Generator uses (same Voice Sample application, same client brand
+    context). Poll /api/jobs/{job_id}."""
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
     if not request.video_url.strip():
@@ -596,10 +598,17 @@ async def run_remix(request: RemixRequest, background_tasks: BackgroundTasks):
     def _do_remix():
         try:
             background_jobs[job_id]["status"] = "running"
-            agent = RemixAgent()
+            agent = RemixAgent(client_id=request.client_id)
             result = agent.run(video_url=request.video_url, tone=request.tone)
+            output = CreativeStudioRemixOutput(
+                script=result.script,
+                structure=result.structure,
+                transcript=result.transcript,
+                platform=result.platform,
+                summary=result.summary,
+            )
             background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = result.model_dump(mode="json")
+            background_jobs[job_id]["result"] = output.model_dump(mode="json")
         except Exception as e:
             import traceback
             with open("error.log", "a") as f:
