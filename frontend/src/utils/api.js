@@ -46,7 +46,9 @@ export const api = {
 
   // Vault
   saveToVault: (data) => apiRequest('/api/vault/save', { method: 'POST', body: data }),
-  getVaultHistory: () => apiRequest('/api/vault/history', { method: 'GET' }),
+  getVaultHistory: (clientId) =>
+    apiRequest(`/api/vault/history${clientId ? `?client_id=${clientId}` : ''}`, { method: 'GET' }),
+  deleteVaultScript: (scriptId) => apiRequest(`/scripts/${scriptId}`, { method: 'DELETE' }),
 
   // Full pipeline
   runFullPipeline: (topic, platform) =>

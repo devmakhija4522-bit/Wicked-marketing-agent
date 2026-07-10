@@ -678,13 +678,16 @@ async def get_client(client_id: str):
 # ── Vault Endpoints ─────────────────────────────────────────────
 
 @app.get("/api/vault/history", tags=["Vault"])
-async def get_vault_history():
-    """Get all saved scripts."""
-    return {"history": load_generated_scripts()}
+async def get_vault_history(client_id: Optional[str] = None):
+    """Get saved scripts, scoped to one client when client_id is given."""
+    scripts = load_generated_scripts()
+    if client_id:
+        scripts = [s for s in scripts if s.get("client_id") == client_id]
+    return {"history": scripts}
 
 @app.post("/api/vault/save", tags=["Vault"])
 async def save_to_vault(request: dict):
-    """Save a generated script to the vault."""
+    """Save a generated script to the vault, scoped to a client."""
     try:
         scripts = load_generated_scripts()
         # Ensure it has an ID and timestamp
@@ -692,6 +695,7 @@ async def save_to_vault(request: dict):
         from datetime import datetime
         script_entry = {
             "id": uuid.uuid4().hex[:12],
+            "client_id": request.get("client_id", ""),
             "title": request.get("title", "GMM Generated Campaign"),
             "format": request.get("format", "Omni-Channel"),
             "content": request.get("content", {}),

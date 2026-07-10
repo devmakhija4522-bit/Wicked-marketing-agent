@@ -51,20 +51,38 @@ export default function Vault() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedScript, setExpandedScript] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [activeClient?.id]);
 
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const data = await api.getVaultHistory();
+      const data = await api.getVaultHistory(activeClient?.id);
       setScripts(data.history || []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (e, scriptId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this script from the Vault? This cannot be undone.')) return;
+    setDeletingId(scriptId);
+    try {
+      await api.deleteVaultScript(scriptId);
+      setScripts((prev) => prev.filter((s) => s.id !== scriptId));
+      if (expandedScript !== null && scripts[expandedScript]?.id === scriptId) {
+        setExpandedScript(null);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to delete script.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -118,6 +136,14 @@ export default function Vault() {
                     Brand Score: {script.brand_score}/100
                   </span>
                 )}
+                <button
+                  className="btn-icon vault-delete-btn"
+                  onClick={(e) => handleDelete(e, script.id)}
+                  disabled={deletingId === script.id}
+                  title="Delete"
+                >
+                  {deletingId === script.id ? '…' : '🗑️'}
+                </button>
                 <button className="btn-icon">
                   {expandedScript === idx ? '▲' : '▼'}
                 </button>
