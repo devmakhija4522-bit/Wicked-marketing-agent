@@ -285,3 +285,49 @@
 .pipeline-stage-locked h2 {
   color: var(--text-secondary);
 }
+
+.creative-studio-tabs {
+  margin-bottom: 0;
+}
+
+.creative-studio-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.creative-studio-feature-subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.remix-tone-row {
+  align-items: center;
+}
+
+.remix-tone-row label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.remix-tone-row select {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-primary);
+}
+
+.remix-error-note {
+  color: #ef4444;
+  font-style: normal;
+}
+
+.remix-result-block {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 8px;
+}

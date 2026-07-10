@@ -160,11 +160,11 @@ export const api = {
   getAnalyticsSummary: (platform = 'All') =>
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
 
-  // Remix: paste a link, transcribe, rewrite in your voice
-  runRemix: (videoUrl, tone = '') =>
-    apiRequest('/api/remix', {
+  // Creative Studio: Remix (independent alternate entry, paste a link)
+  runCreativeStudioRemix: (clientId, videoUrl, tone = '') =>
+    apiRequest('/api/creative-studio/remix', {
       method: 'POST',
-      body: { video_url: videoUrl, tone },
+      body: { client_id: clientId, video_url: videoUrl, tone },
     }),
 };
 
