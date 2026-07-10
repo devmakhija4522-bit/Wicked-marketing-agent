@@ -48,9 +48,15 @@ class Settings(BaseSettings):
     debug: bool = True
 
     # --- LLM ---
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-2.5-flash"
     gemini_temperature: float = 0.8
     gemini_max_tokens: int = 8192
+
+    # --- LLM fallback: NVIDIA NIM (OpenAI-compatible) ---
+    # Used only when Gemini is exhausted/unavailable after its own retries —
+    # see services/llm_service.py. Free tier at build.nvidia.com; one key
+    # works across all NVIDIA-hosted models.
+    nvidia_api_key: str = ""
 
     # --- Creative framework ---
     # Toggles the Harbour creative-principles prompt additions in the ideation/
@@ -59,6 +65,10 @@ class Settings(BaseSettings):
     harbour_mode_enabled: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+
+    @property
+    def has_nvidia(self) -> bool:
+        return bool(self.nvidia_api_key)
 
     @property
     def has_youtube(self) -> bool:
