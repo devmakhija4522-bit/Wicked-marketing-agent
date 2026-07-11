@@ -177,16 +177,25 @@ def save_client_profile(client_data: dict) -> None:
             logger.error(f"Failed to save client to MongoDB: {e}")
 
 def delete_client_profile(client_id: str) -> bool:
-    """Delete a client profile JSON."""
+    """Delete a client profile from both MongoDB and local storage — a client
+    saved via save_client_profile() always lands in both, so deletion must
+    check both too rather than returning as soon as one store says 404."""
+    deleted = False
+
     if db is not None:
-        result = db.clients.delete_one({"id": client_id})
-        return result.deleted_count > 0
+        try:
+            result = db.clients.delete_one({"id": client_id})
+            if result.deleted_count > 0:
+                deleted = True
+        except Exception as e:
+            logger.error(f"Failed to delete client '{client_id}' from MongoDB: {e}")
 
     profile_path = CLIENTS_DIR / f"{client_id}.json"
     if profile_path.exists():
         profile_path.unlink()
-        return True
-    return False
+        deleted = True
+
+    return deleted
 
 def load_brand_profile() -> dict:
     """Fallback for backwards compatibility, loads the first client or generic."""

@@ -169,7 +169,7 @@ Be thorough but fair. Great content takes creative risks — don't punish that. 
                         revised_sections.append(
                             ScriptSection(
                                 section_name=sec.get("section_name", ""),
-                                duration_seconds=sec.get("duration_seconds", ""),
+                                duration_seconds=str(sec.get("duration_seconds") or ""),
                                 dialogue=sec.get("dialogue", ""),
                                 visual_notes=sec.get("visual_notes", ""),
                                 audio_notes=sec.get("audio_notes", ""),

@@ -49,10 +49,18 @@ YOUR MISSION: Turn content concepts into scroll-stopping, share-worthy scripts t
    - Filler words (sparingly): "Matlab", "Like", "Basically"
    - Reactions: "Wait what?", "Arre", "Oho", "Abbe"
 
-3. PUNCHLINE PLACEMENT:
-   - Hook (0-2 sec): Pattern interrupt or bold claim. This line should be QUOTABLE.
-   - Build (5-20 sec): Escalate the problem or provide the main value/story.
-   - Twist/Brand (20-35 sec): The unexpected turn where the brand enters naturally.
+3. PUNCHLINE PLACEMENT — THE MIDPOINT RULE:
+   - Hook (0-2 sec): Pattern interrupt or bold claim, on a topic with ZERO
+     apparent connection to the brand/category. This line should be QUOTABLE.
+   - Build (5-20 sec): Escalate the SAME unrelated story/problem. Do not
+     hint at the category yet, even subtly — someone watching only up to
+     here should have no idea this is going anywhere near a brand.
+   - Twist/Brand (20-35 sec): This is where the misdirection breaks — hold
+     it as close to the video's midpoint as the format allows, then land
+     the brand as an unexpected turn. It doesn't have to be a calm, tidy
+     "natural" reveal — a flat-out absurd or surprising swerve is just as
+     valid, as long as it still makes sense in hindsight. Never let this
+     section start early "to be safe."
    - CTA (35-45 sec): Not "buy now" — more like "ab batao, kaun hai smart?"
 
 4. HUMOR TOOLKIT:
@@ -67,9 +75,9 @@ YOUR MISSION: Turn content concepts into scroll-stopping, share-worthy scripts t
    ✅ "Performance itni solid hai ki subah 7 baje start kiya, raat ko 11 baje bhi chal raha hai — aur maine heavy use kiya hai"
 
 6. CRITICAL RULES FOR THE BRAND MOMENT:
-   - The brand should enter the script like a friend's recommendation, not a TV commercial
-   - Instead: The character/narrator casually reveals they use the brand, and it's positioned as a smart insider move
-   - The audience should think "damn, that's actually smart" not "oh, this is an ad"
+   - The brand should enter the script like a friend's recommendation or a genuine plot twist, never like a TV commercial
+   - Two valid ways in: (a) the character/narrator casually reveals they use the brand, positioned as a smart insider move, or (b) the story swerves into the brand in a way that's flat-out unexpected or absurd — pick whichever the story actually earns, don't default to (a) out of habit
+   - The audience's reaction should be "damn, that's actually smart" OR "wait, THAT'S what this was about?!" — either is a win, but "oh, this is an ad" is the failure state
 
 7. VISUAL AWARENESS:
    - Write with the camera in mind. Add visual notes.
@@ -133,11 +141,19 @@ Include suggested hashtags and caption text.
             beats = "\n".join(f"  - {b}" for b in structure.beat_outline)
             tone_line = f"\nTone override for this script: {tone}." if tone else ""
             structure_block = f"""
-=== STRUCTURE TO FOLLOW (from Structural Designer — non-negotiable) ===
+=== STRUCTURE TO FOLLOW (non-negotiable) ===
 Hook Direction: {structure.hook_direction}
 Beat Outline:
 {beats}
-Source Keyword: {structure.source_keyword}
+Source: {structure.source_keyword}
+
+Note: if the beat outline above reads like raw transcript sentences from
+a remixed video rather than a designed hook/bridge, treat it as the STORY
+SHAPE to reverse-engineer, not literal lines to paraphrase — identify
+where in that source the reveal actually lands relative to its own
+runtime and how it misdirects beforehand, then rebuild an equivalent arc
+for THIS brand in the Hinglish voice below. Preserve the pattern, not the
+wording.
 === END STRUCTURE ===
 
 === SCRIPT WRITING VOICE (apply strictly — hook distance, bridge technique, and tone rules are non-negotiable, not optional flavor) ===
@@ -236,7 +252,7 @@ REMEMBER:
 - Write in natural Hinglish. Not too much Hindi, not too much English. The way college students in Delhi talk.
 - The script should be ENTERTAINING first. Someone should want to watch this even if they don't care about the brand.
 - Every line should earn the next line. No filler.
-- The brand moment should feel like a natural reveal, not an insertion.
+- The brand moment should feel like a natural reveal or a genuine twist, never an insertion — through roughly the midpoint of the runtime, a viewer should have zero idea this is going anywhere near a brand.
 - Include at least one quotable/meme-able line that people might use in their own conversations."""
 
         try:
@@ -248,7 +264,7 @@ REMEMBER:
                     sections.append(
                         ScriptSection(
                             section_name=sec.get("section_name", ""),
-                            duration_seconds=sec.get("duration_seconds", ""),
+                            duration_seconds=str(sec.get("duration_seconds") or ""),
                             dialogue=sec.get("dialogue", ""),
                             visual_notes=sec.get("visual_notes", ""),
                             audio_notes=sec.get("audio_notes", ""),

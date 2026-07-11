@@ -128,16 +128,25 @@
 
 .kp-search-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
 .kp-search-row input {
   flex: 1;
+  min-width: 180px;
   padding: 0.75rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--surface-border);
   background: rgba(0, 0, 0, 0.2);
   color: var(--text-primary);
+}
+
+.kp-or-divider {
+  align-self: center;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .kp-note {
