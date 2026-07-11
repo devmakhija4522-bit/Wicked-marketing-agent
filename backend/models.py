@@ -269,6 +269,29 @@ class CreativeStudioRemixOutput(BaseModel):
     note: str = ""
 
 
+# ── Voice Sample: Reference Reel Analysis ─────────────────────
+
+class ReferenceReelAnalysisRequest(BaseModel):
+    video_urls: list[str] = Field(default_factory=list)
+
+
+class ReferenceReelSummary(BaseModel):
+    """Per-video status, so the UI can show which links transcribed fine
+    and which didn't, without burying that in the prose analysis."""
+    url: str
+    platform: str = "unknown"
+    transcribed: bool = False
+    duration_seconds: Optional[int] = None
+    note: str = ""
+
+
+class ReferenceReelAnalysisOutput(BaseModel):
+    videos: list[ReferenceReelSummary] = Field(default_factory=list)
+    pattern_analysis: str = ""
+    updated_script_writing_voice: str = ""
+    note: str = ""
+
+
 # ── Creative Studio: Keyword Planner (Phase 2) ────────────────
 
 class KeywordPhrase(BaseModel):

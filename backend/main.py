@@ -53,6 +53,7 @@ from models import (
     CreativeStudioScriptWriterRequest,
     CreativeStudioScriptWriterOutput,
     CreativeStudioState,
+    ReferenceReelAnalysisRequest,
 )
 from agents.trend_scout import TrendScoutAgent
 from agents.gmm_news_scout import GMMNewsScoutAgent
@@ -68,6 +69,7 @@ from agents.instagram_script_writer import InstagramScriptWriterAgent
 from agents.keyword_planner import KeywordPlannerAgent
 from agents.structural_designer import StructuralDesignerAgent
 from agents.remix_agent import RemixAgent
+from agents.reference_analyzer import ReferenceAnalyzerAgent
 from pipeline import execute_pipeline
 from autonomous import autonomous_loop, get_autonomous_config, get_recent_cycles, load_covered_topics, run_cycle
 from services.news_service import NewsService
@@ -578,6 +580,42 @@ async def update_voice_sample(update: VoiceSampleUpdate):
     }
     save_voice_sample(record)
     return record
+
+
+@app.post("/api/voice-sample/analyze-references", tags=["Voice Sample"])
+async def analyze_reference_reels(request: ReferenceReelAnalysisRequest, background_tasks: BackgroundTasks):
+    """Transcribe a batch of reference reels/videos and distill their
+    shared storytelling pattern into a proposed Voice Sample update.
+    Returns a job_id — poll GET /api/jobs/{job_id}. Does NOT save
+    automatically: the frontend shows the proposed script_writing_voice
+    text and the user applies it via the existing PUT /api/voice-sample,
+    same as any other manual edit."""
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
+
+    urls = [u.strip() for u in request.video_urls if u.strip()]
+    if not urls:
+        raise HTTPException(status_code=400, detail="At least one video URL is required.")
+
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
+
+    def _do_analyze():
+        try:
+            background_jobs[job_id]["status"] = "running"
+            agent = ReferenceAnalyzerAgent()
+            result = agent.run(urls)
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = result
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_analyze)
+    return {"job_id": job_id}
 
 # ── Creative Studio: Remix (independent alternate entry, paste a link) ──
 

@@ -133,6 +133,12 @@ export const api = {
   saveVoiceSample: (data) =>
     apiRequest('/api/voice-sample', { method: 'PUT', body: data }),
 
+  analyzeReferenceReels: (videoUrls) =>
+    apiRequest('/api/voice-sample/analyze-references', {
+      method: 'POST',
+      body: { video_urls: videoUrls },
+    }),
+
   // Creative Studio: Keyword Planner + pipeline state
   runKeywordPlanner: (clientId) =>
     apiRequest('/api/creative-studio/keyword-planner', {
