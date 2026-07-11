@@ -86,6 +86,41 @@ start wide, narrow in, land on the specific case last.
 
 ---
 
+## The Midpoint Rule — Cinematic Misdirection
+
+The Maximum Distance Hook isn't just about the opening line — it has to
+hold for roughly the first HALF of the video's total runtime. If someone
+watches only the first 50% and stops, they should have no real idea what
+the video is even about, let alone that it's for a brand or which
+category it's in. It should watch like the opening act of a short film
+or a cinematic ad — a real story with its own stakes — not like content
+that's obviously warming up to a product.
+
+The temptation is to start hinting at the category around the 25–40%
+mark "just to be safe" — a knowing detail, a visual cue, a word that
+rhymes with the product. Resist that completely. Hold the misdirection
+all the way to the midpoint. Nothing before it should be reverse-
+engineerable to the brand, even by someone actively trying.
+
+The landing itself should feel unexpected — sometimes outright absurd —
+not just a tidy "aha, that connects" bridge via a stat. Think less
+"documentary pivot," more "wait, THAT'S what this was building to?" The
+connection still has to earn itself and make sense in hindsight (never
+force something illogical) — but the emotional beat on first watch
+should be surprise or a laugh, not just quiet recognition. A stat-based
+bridge (per the Bridge Formula above) is one valid way in; a flat-out
+absurd swerve is another, equally valid way in. Pick whichever the topic
+actually earns — don't default to the safer, calmer one out of habit.
+
+This rule applies even when — especially when — the input keyword is
+flat, generic, or seemingly mediocre. A boring keyword is never an
+excuse for a boring, front-loaded structure. Find the least obvious
+entry point available for that keyword and commit to it for the entire
+first half, exactly like the worked example above, no matter how
+ordinary the keyword looked on paper.
+
+---
+
 ## Tone Ingredients — how and when to use them
 
 - **Humor / satire** — works best when it punctures a frustration the

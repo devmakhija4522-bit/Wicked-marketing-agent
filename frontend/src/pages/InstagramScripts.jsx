@@ -69,6 +69,7 @@ export default function InstagramScripts() {
   const [selectedKeywords, setSelectedKeywords] = useState({});
   const [moving, setMoving] = useState(false);
   const [movedKeywords, setMovedKeywords] = useState(null);
+  const [manualKeyword, setManualKeyword] = useState('');
 
   // --- Content Generator: Structural Designer ---
   const [sdLoading, setSdLoading] = useState(false);
@@ -103,6 +104,25 @@ export default function InstagramScripts() {
     } finally {
       setKpLoading(false);
     }
+  };
+
+  const handleAddManualKeyword = () => {
+    const phrase = manualKeyword.trim();
+    if (!phrase) return;
+    const alreadyExists = (kpResult?.keywords || []).some(
+      (k) => k.phrase.toLowerCase() === phrase.toLowerCase()
+    );
+    if (alreadyExists) {
+      setManualKeyword('');
+      return;
+    }
+    const newKw = { phrase, source_note: 'Typed manually' };
+    setKpResult((prev) => ({
+      note: prev?.note || '',
+      keywords: [newKw, ...(prev?.keywords || [])],
+    }));
+    setSelectedKeywords((prev) => ({ ...prev, [phrase]: newKw }));
+    setManualKeyword('');
   };
 
   const toggleKeyword = (kw) => {
@@ -358,6 +378,22 @@ export default function InstagramScripts() {
             <div className="kp-search-row">
               <button className="btn btn-primary" onClick={handleFetchTrendingKeywords} disabled={kpLoading}>
                 {kpLoading ? <span className="btn-spinner" /> : '✨'} Fetch Trending Keywords
+              </button>
+              <span className="kp-or-divider">or</span>
+              <input
+                type="text"
+                className="glass-input"
+                placeholder="Type your own keyword…"
+                value={manualKeyword}
+                onChange={(e) => setManualKeyword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddManualKeyword()}
+              />
+              <button
+                className="btn btn-secondary"
+                onClick={handleAddManualKeyword}
+                disabled={!manualKeyword.trim()}
+              >
+                ➕ Add
               </button>
             </div>
 
