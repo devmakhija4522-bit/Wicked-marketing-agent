@@ -3,31 +3,49 @@ import { api } from '../utils/api.js';
 import './VoiceSample.css';
 
 export default function VoiceSample() {
-  const [scriptWritingVoice, setScriptWritingVoice] = useState('');
-  const [ideaCategorizationVoice, setIdeaCategorizationVoice] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [notes, setNotes] = useState({ satire: '', emotional: '', infographic: '' });
+  const [referenceProfiles, setReferenceProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [savedAt, setSavedAt] = useState(null);
 
-  // --- Reference Reels: transcribe + analyze a batch of example links ---
-  const [referenceUrls, setReferenceUrls] = useState(['']);
+  // --- Reference Reels: one link at a time -> analyze -> Approve saves it ---
+  const [referenceUrl, setReferenceUrl] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisJobId, setAnalysisJobId] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
-  const [applied, setApplied] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState(null);
+  const [justApproved, setJustApproved] = useState(null);
 
   useEffect(() => {
+    fetchVoiceCategories();
     fetchVoiceSample();
   }, []);
+
+  const fetchVoiceCategories = async () => {
+    try {
+      const data = await api.getVoiceCategories();
+      setCategories(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchVoiceSample = async () => {
     try {
       setLoading(true);
       const data = await api.getVoiceSample();
-      setScriptWritingVoice(data.script_writing_voice || '');
-      setIdeaCategorizationVoice(data.idea_categorization_voice || '');
+      setNotes({
+        satire: data.satire_notes || '',
+        emotional: data.emotional_notes || '',
+        infographic: data.infographic_notes || '',
+      });
+      setReferenceProfiles(data.reference_profiles || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -40,8 +58,9 @@ export default function VoiceSample() {
       setSaving(true);
       setError(null);
       const data = await api.saveVoiceSample({
-        script_writing_voice: scriptWritingVoice,
-        idea_categorization_voice: ideaCategorizationVoice,
+        satire_notes: notes.satire,
+        emotional_notes: notes.emotional,
+        infographic_notes: notes.infographic,
       });
       setSavedAt(data.updated_at);
     } catch (err) {
@@ -51,27 +70,16 @@ export default function VoiceSample() {
     }
   };
 
-  const updateReferenceUrl = (index, value) => {
-    setReferenceUrls((prev) => prev.map((u, i) => (i === index ? value : u)));
-  };
-
-  const addReferenceUrlField = () => {
-    setReferenceUrls((prev) => [...prev, '']);
-  };
-
-  const removeReferenceUrlField = (index) => {
-    setReferenceUrls((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAnalyzeReferences = async () => {
-    const urls = referenceUrls.map((u) => u.trim()).filter(Boolean);
-    if (urls.length === 0) return;
+  const handleAnalyzeReference = async () => {
+    const url = referenceUrl.trim();
+    if (!url) return;
     setAnalyzing(true);
     setAnalysisError(null);
     setAnalysisResult(null);
-    setApplied(false);
+    setApproveError(null);
+    setJustApproved(null);
     try {
-      const { job_id } = await api.analyzeReferenceReels(urls);
+      const { job_id } = await api.analyzeReferenceReel(url);
       setAnalysisJobId(job_id);
     } catch (err) {
       setAnalysisError(err.message || 'Failed to start analysis.');
@@ -87,6 +95,7 @@ export default function VoiceSample() {
         if (status.status === 'completed') {
           clearInterval(interval);
           setAnalysisResult(status.result);
+          setProfileName(status.result?.suggested_name || '');
           setAnalyzing(false);
           setAnalysisJobId(null);
         } else if (status.status === 'failed') {
@@ -105,13 +114,29 @@ export default function VoiceSample() {
     return () => clearInterval(interval);
   }, [analysisJobId]);
 
-  const handleApplyAnalysis = () => {
-    if (!analysisResult?.updated_script_writing_voice) return;
-    setScriptWritingVoice(analysisResult.updated_script_writing_voice);
-    setApplied(true);
-    document
-      .getElementById('script-writing-voice')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const handleApproveReference = async () => {
+    if (!analysisResult?.pattern_analysis || !profileName.trim()) return;
+    setApproving(true);
+    setApproveError(null);
+    try {
+      const data = await api.approveReferenceProfile({
+        name: profileName.trim(),
+        url: analysisResult.url,
+        platform: analysisResult.platform,
+        analysis: analysisResult.pattern_analysis,
+      });
+      setReferenceProfiles(data.reference_profiles || []);
+      setSavedAt(data.updated_at);
+      setJustApproved(profileName.trim());
+      // Reset for the next link — "and so on".
+      setReferenceUrl('');
+      setAnalysisResult(null);
+      setProfileName('');
+    } catch (err) {
+      setApproveError(err.message || 'Failed to approve.');
+    } finally {
+      setApproving(false);
+    }
   };
 
   if (loading) {
@@ -132,9 +157,11 @@ export default function VoiceSample() {
       <header className="voice-sample-header">
         <h1>Voice Sample</h1>
         <p>
-          Account-wide creative reference — how scripts get written and how
-          ideas get categorized. Every client's Structural Designer and
-          Script Writer combine this with that client's own brand profile.
+          Account-wide creative reference. Every script is written through
+          one of the 3 categories below — Structural Designer and Script
+          Writer combine the selected category's concept with that
+          client's own brand profile. Picking a category is required when
+          generating; the notes here are optional extra tuning.
         </p>
       </header>
 
@@ -143,55 +170,29 @@ export default function VoiceSample() {
       <div className="voice-sample-field glass-panel reference-reels-field">
         <label>Learn From Reference Reels</label>
         <p className="field-hint">
-          Paste links to reels/videos whose storytelling you want WICKED to
-          learn from. Each one gets transcribed, and the shared pattern
-          across them — hook style, how long it stays ambiguous, how the
-          reveal lands — gets folded into Script Writing Voice below for
-          you to review before saving.
+          Paste one reel/video link whose storytelling you want WICKED to
+          learn from. It gets transcribed and analyzed, then Approve saves
+          it straight to Voice Sample as its own named profile — paste the
+          next link and repeat to keep building the library.
         </p>
 
-        <div className="reference-url-list">
-          {referenceUrls.map((url, index) => (
-            <div className="reference-url-row" key={index}>
-              <input
-                type="text"
-                placeholder="Paste a Reel, TikTok, or YouTube link…"
-                value={url}
-                onChange={(e) => updateReferenceUrl(index, e.target.value)}
-                disabled={analyzing}
-              />
-              {referenceUrls.length > 1 && (
-                <button
-                  type="button"
-                  className="btn btn-icon reference-url-remove"
-                  onClick={() => removeReferenceUrlField(index)}
-                  disabled={analyzing}
-                  aria-label="Remove this link"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="reference-reels-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={addReferenceUrlField}
+        <div className="reference-url-row">
+          <input
+            type="text"
+            placeholder="Paste a Reel, TikTok, or YouTube link…"
+            value={referenceUrl}
+            onChange={(e) => setReferenceUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeReference()}
             disabled={analyzing}
-          >
-            + Add another
-          </button>
+          />
           <button
             type="button"
             className="btn btn-primary"
-            onClick={handleAnalyzeReferences}
-            disabled={analyzing || referenceUrls.every((u) => !u.trim())}
+            onClick={handleAnalyzeReference}
+            disabled={analyzing || !referenceUrl.trim()}
           >
             {analyzing ? <span className="btn-spinner" /> : null}
-            {analyzing ? 'Transcribing & analyzing…' : 'Analyze Reels'}
+            {analyzing ? 'Analyzing…' : 'Analyze'}
           </button>
         </div>
 
@@ -206,53 +207,87 @@ export default function VoiceSample() {
 
         {!analyzing && analysisResult && (
           <div className="reference-analysis-result">
-            <ul className="reference-video-status-list">
-              {analysisResult.videos.map((v, i) => (
-                <li key={i} className={v.transcribed ? 'transcribed' : 'not-transcribed'}>
-                  <span className="reference-video-status-icon">{v.transcribed ? '✓' : '⚠'}</span>
-                  <span className="reference-video-url">{v.url}</span>
-                  {v.note && <span className="reference-video-note">{v.note}</span>}
-                </li>
-              ))}
-            </ul>
-
-            {analysisResult.pattern_analysis ? (
+            {!analysisResult.transcribed ? (
+              <p className="reference-error-note">
+                {analysisResult.note || 'Could not get a usable transcript from that link.'}
+              </p>
+            ) : analysisResult.pattern_analysis ? (
               <>
-                <p className="field-hint" style={{ marginTop: '1rem' }}>Pattern analysis:</p>
+                <p className="field-hint">Pattern analysis:</p>
                 <div className="reference-pattern-preview">{analysisResult.pattern_analysis}</div>
-                <button type="button" className="btn btn-primary" onClick={handleApplyAnalysis}>
-                  {applied ? '✅ Applied — review below and Save' : 'Apply to Script Writing Voice'}
-                </button>
+
+                <label className="reference-name-label" htmlFor="reference-profile-name">
+                  Save as
+                </label>
+                <div className="reference-approve-row">
+                  <input
+                    id="reference-profile-name"
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    disabled={approving}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleApproveReference}
+                    disabled={approving || !profileName.trim()}
+                  >
+                    {approving ? <span className="btn-spinner" /> : null}
+                    {approving ? 'Approving…' : 'Approve'}
+                  </button>
+                </div>
+                {approveError && <p className="reference-error-note">{approveError}</p>}
               </>
             ) : (
-              <p className="kp-note">
-                {analysisResult.note || 'No usable speech found in those links to analyze.'}
+              <p className="reference-error-note">
+                {analysisResult.note || 'Analysis did not return usable output.'}
               </p>
             )}
           </div>
         )}
+
+        {justApproved && (
+          <p className="reference-approved-note">
+            ✅ Approved as {justApproved} — saved straight to Voice Sample below.
+          </p>
+        )}
+
+        {referenceProfiles.length > 0 && (
+          <div className="reference-profile-library">
+            <p className="field-hint">Approved profiles ({referenceProfiles.length}):</p>
+            <ul className="reference-profile-list">
+              {referenceProfiles.map((p, i) => (
+                <li key={i}>
+                  <span className="reference-profile-name">{p.name}</span>
+                  <span className="reference-profile-url">{p.url}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      <div className="voice-sample-field glass-panel">
-        <label htmlFor="script-writing-voice">Script Writing Voice</label>
-        <p className="field-hint">Hook distance from brand, bridge technique, tone rules.</p>
-        <textarea
-          id="script-writing-voice"
-          value={scriptWritingVoice}
-          onChange={(e) => setScriptWritingVoice(e.target.value)}
-          rows={20}
-        />
-      </div>
-
-      <div className="voice-sample-field glass-panel">
-        <label htmlFor="idea-categorization-voice">Idea Categorization Voice</label>
-        <p className="field-hint">How topics get broken into content categories/characters.</p>
-        <textarea
-          id="idea-categorization-voice"
-          value={ideaCategorizationVoice}
-          onChange={(e) => setIdeaCategorizationVoice(e.target.value)}
-          rows={20}
-        />
+      <div className="voice-category-grid">
+        {categories.map((cat) => (
+          <div key={cat.key} className="voice-category-card glass-panel">
+            <div className="voice-category-card-header">
+              <span className="voice-category-label">{cat.label}</span>
+              <span className="voice-category-concept">{cat.concept_name}</span>
+            </div>
+            <p className="voice-category-description">{cat.short_description}</p>
+            <label htmlFor={`notes-${cat.key}`} className="voice-category-notes-label">
+              Your notes for this category (optional)
+            </label>
+            <textarea
+              id={`notes-${cat.key}`}
+              value={notes[cat.key] || ''}
+              onChange={(e) => setNotes((prev) => ({ ...prev, [cat.key]: e.target.value }))}
+              rows={8}
+              placeholder="Add brand-specific tuning, examples, or reminders for this category…"
+            />
+          </div>
+        ))}
       </div>
 
       <div className="voice-sample-actions">

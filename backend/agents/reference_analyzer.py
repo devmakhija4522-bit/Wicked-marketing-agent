@@ -1,10 +1,11 @@
 """
 Reference Reel Analyzer
-Transcribes a batch of user-provided reels/videos and distills the shared
-narrative pattern across them (hook style, misdirection technique, reveal
-timing, tone) into a Voice Sample section — so future Structural Designer
-and Script Writer output can be steered by real examples the user finds
-compelling, not just hand-written guidance.
+Transcribes a single user-provided reel/video and distills its narrative
+pattern (hook style, misdirection technique, reveal timing, tone) into a
+short technique analysis. The user reviews it and, on approval, it's
+saved as a named profile ("Wicked VC1", "Wicked VC2", ...) that
+accumulates into the account-wide Voice Sample rather than overwriting
+previous ones.
 
 Brand-agnostic by design: this feeds the account-wide Voice Sample, not a
 specific client's content, so it bypasses BaseAgent's automatic brand
@@ -15,28 +16,23 @@ import logging
 
 from agents.base_agent import BaseAgent
 from config import load_voice_sample
-from models import ReferenceReelSummary
 from services.media_transcriber import transcribe_url, TranscriptionError
 
 logger = logging.getLogger("wicked.agent.reference_analyzer")
 
-SECTION_HEADING = "## Reference Reel Analysis (learned from pasted examples)"
-
 SYSTEM_PROMPT = """You are a narrative-structure analyst for short-form video ads.
 
-You will be given transcripts of several reference reels the user picked
-specifically because they like how the story is told. Your job is to find
-the SHARED pattern across them — not to summarize each video individually.
-
-Study: where and how each video hooks the viewer, roughly what percentage
-of the runtime it holds genuine ambiguity about what it's even about,
-what technique it uses to misdirect (an unrelated story, a question, a
-bold claim), and how/where the actual subject or brand lands — is it a
-calm logical reveal or an unexpected/absurd swerve?
+You will be given the transcript of one reference reel the user picked
+specifically because they like how the story is told. Identify the
+pattern: where and how it hooks the viewer, roughly what percentage of
+the runtime it holds genuine ambiguity about what it's even about, what
+technique it uses to misdirect (an unrelated story, a question, a bold
+claim), and how/where the actual subject or brand lands — a calm logical
+reveal or an unexpected/absurd swerve?
 
 CRITICAL: Describe the PATTERN AND TECHNIQUE in your own analytical
 words, as a creative director briefing a writer. Do not quote or
-reproduce more than a few words of dialogue at a time from any
+reproduce more than a few words of dialogue at a time from the
 transcript, and never reproduce a full line, sentence, or verse
 verbatim — this is structural analysis, not transcription."""
 
@@ -48,73 +44,39 @@ class ReferenceAnalyzerAgent(BaseAgent):
     def get_system_prompt(self) -> str:
         return SYSTEM_PROMPT
 
-    def run(self, video_urls: list[str]) -> dict:
-        videos: list[ReferenceReelSummary] = []
-        transcripts_for_analysis: list[str] = []
+    def analyze(self, video_url: str) -> dict:
+        url = video_url.strip()
+        suggested_name = self._next_name()
 
-        for raw_url in video_urls:
-            url = raw_url.strip()
-            if not url:
-                continue
-            try:
-                data = transcribe_url(url)
-            except TranscriptionError as e:
-                self.logger.warning("Transcription failed for %s: %s", url, e)
-                videos.append(ReferenceReelSummary(url=url, note=f"Could not transcribe: {e}"))
-                continue
-            except Exception as e:
-                self.logger.error("Unexpected error transcribing %s: %s", url, e)
-                videos.append(ReferenceReelSummary(url=url, note=f"Unexpected error: {e}"))
-                continue
+        try:
+            data = transcribe_url(url)
+        except TranscriptionError as e:
+            self.logger.warning("Transcription failed for %s: %s", url, e)
+            return self._result(url, note=f"Could not transcribe: {e}", suggested_name=suggested_name)
+        except Exception as e:
+            self.logger.error("Unexpected error transcribing %s: %s", url, e)
+            return self._result(url, note=f"Unexpected error: {e}", suggested_name=suggested_name)
 
-            transcript = (data.get("transcript") or "").strip()
-            platform = data.get("platform", "unknown")
-            duration = data.get("estimated_duration_seconds")
+        transcript = (data.get("transcript") or "").strip()
+        platform = data.get("platform", "unknown")
+        duration = data.get("estimated_duration_seconds")
 
-            if transcript:
-                videos.append(
-                    ReferenceReelSummary(
-                        url=url,
-                        platform=platform,
-                        transcribed=True,
-                        duration_seconds=duration,
-                        note=data.get("summary", ""),
-                    )
-                )
-                transcripts_for_analysis.append(f"--- Video ({platform}, ~{duration}s) ---\n{transcript}")
-            else:
-                videos.append(
-                    ReferenceReelSummary(
-                        url=url,
-                        platform=platform,
-                        transcribed=False,
-                        duration_seconds=duration,
-                        note=data.get("summary") or "No speech detected in this clip.",
-                    )
-                )
+        if not transcript:
+            return self._result(
+                url,
+                platform=platform,
+                duration_seconds=duration,
+                note=data.get("summary") or "No speech detected in this clip.",
+                suggested_name=suggested_name,
+            )
 
-        existing_voice = load_voice_sample().get("script_writing_voice", "")
+        prompt = f"""Here is the transcript of one reference reel (~{duration}s, {platform}):
 
-        if not transcripts_for_analysis:
-            return {
-                "videos": [v.model_dump() for v in videos],
-                "pattern_analysis": "",
-                "updated_script_writing_voice": existing_voice,
-                "note": "No transcribable videos — nothing to analyze.",
-            }
-
-        joined = "\n\n".join(transcripts_for_analysis)
-        prompt = f"""Here are transcripts from {len(transcripts_for_analysis)} reference reel(s):
-
-{joined}
-
-Write the shared-pattern analysis as described in your instructions. If
-only one video was provided, analyze its pattern alone rather than
-looking for a "shared" pattern across videos.
+{transcript}
 
 Return a JSON object:
 {{
-  "pattern_analysis": "3-6 paragraphs of prose analysis, structural and technique-focused, written the way a creative director would brief a writer — not a transcript summary and not a scene-by-scene recap."
+  "pattern_analysis": "2-4 paragraphs of prose analysis, structural and technique-focused, written the way a creative director would brief a writer — not a transcript summary and not a scene-by-scene recap."
 }}"""
 
         analysis = ""
@@ -129,27 +91,37 @@ Return a JSON object:
             self.logger.error("Reference analysis failed: %s", e)
             note = f"Analysis failed: {e}"
 
-        merged_voice = self._merge_section(existing_voice, analysis) if analysis else existing_voice
+        return self._result(
+            url,
+            platform=platform,
+            transcribed=True,
+            duration_seconds=duration,
+            note=note,
+            pattern_analysis=analysis,
+            suggested_name=suggested_name,
+        )
 
+    @staticmethod
+    def _result(
+        url: str,
+        platform: str = "unknown",
+        transcribed: bool = False,
+        duration_seconds=None,
+        note: str = "",
+        pattern_analysis: str = "",
+        suggested_name: str = "",
+    ) -> dict:
         return {
-            "videos": [v.model_dump() for v in videos],
-            "pattern_analysis": analysis,
-            "updated_script_writing_voice": merged_voice,
+            "url": url,
+            "platform": platform,
+            "transcribed": transcribed,
+            "duration_seconds": duration_seconds,
             "note": note,
+            "pattern_analysis": pattern_analysis,
+            "suggested_name": suggested_name,
         }
 
     @staticmethod
-    def _merge_section(existing_voice: str, analysis: str) -> str:
-        """Replace a previous '## Reference Reel Analysis' section if
-        present, otherwise append a new one — so re-running this doesn't
-        pile up duplicate sections over time."""
-        new_section = f"{SECTION_HEADING}\n\n{analysis}\n"
-
-        if SECTION_HEADING in existing_voice:
-            before, _, rest = existing_voice.partition(SECTION_HEADING)
-            _, sep, after = rest.partition("\n---\n")
-            if sep:
-                return f"{before}{new_section}\n---\n{after}"
-            return f"{before}{new_section}"
-
-        return f"{existing_voice.rstrip()}\n\n---\n\n{new_section}"
+    def _next_name() -> str:
+        profiles = load_voice_sample().get("reference_profiles", [])
+        return f"Wicked VC{len(profiles) + 1}"

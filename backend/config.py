@@ -222,11 +222,13 @@ def load_voice_sample() -> dict:
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Failed to read {VOICE_SAMPLE_FILE}: {e}")
 
-    from data.voice_sample_seed import SCRIPT_WRITING_VOICE_SEED, IDEA_CATEGORIZATION_VOICE_SEED
+    # Fresh account: the creative mechanic for each category lives in
+    # services/voice_categories.py, not in seed data — notes start empty.
     seed = {
         "id": "voice_sample",
-        "script_writing_voice": SCRIPT_WRITING_VOICE_SEED,
-        "idea_categorization_voice": IDEA_CATEGORIZATION_VOICE_SEED,
+        "satire_notes": "",
+        "emotional_notes": "",
+        "infographic_notes": "",
         "updated_at": datetime.utcnow().isoformat(),
     }
     save_voice_sample(seed)

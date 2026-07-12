@@ -53,7 +53,9 @@ from models import (
     CreativeStudioScriptWriterRequest,
     CreativeStudioScriptWriterOutput,
     CreativeStudioState,
-    ReferenceReelAnalysisRequest,
+    ReferenceProfileAnalyzeRequest,
+    ReferenceProfileApproveRequest,
+    IdeaChatRequest,
 )
 from agents.trend_scout import TrendScoutAgent
 from agents.gmm_news_scout import GMMNewsScoutAgent
@@ -70,6 +72,8 @@ from agents.keyword_planner import KeywordPlannerAgent
 from agents.structural_designer import StructuralDesignerAgent
 from agents.remix_agent import RemixAgent
 from agents.reference_analyzer import ReferenceAnalyzerAgent
+from agents.idea_chat import IdeaChatAgent
+from services.voice_categories import categories_for_api
 from pipeline import execute_pipeline
 from autonomous import autonomous_loop, get_autonomous_config, get_recent_cycles, load_covered_topics, run_cycle
 from services.news_service import NewsService
@@ -528,7 +532,7 @@ async def run_structural_designer(request: StructuralDesignerRequest):
 
     keywords = [KeywordPhrase(**k) for k in raw_keywords]
     agent = StructuralDesignerAgent(client_id=request.client_id)
-    return agent.run(keywords)
+    return agent.run(keywords, category=request.category)
 
 
 @app.post("/api/creative-studio/script-writer", response_model=CreativeStudioScriptWriterOutput, tags=["Creative Studio"])
@@ -557,12 +561,54 @@ async def run_creative_studio_script_writer(request: CreativeStudioScriptWriterR
             trend_reference=structure.source_keyword,
             format=ContentFormat.INSTAGRAM_REEL,
         )
-        result = agent.run(concept, structure=structure)
+        result = agent.run(concept, structure=structure, category=structure.category or request.category)
         scripts.append(result.script)
 
     return CreativeStudioScriptWriterOutput(scripts=scripts)
 
+
+@app.post("/api/creative-studio/idea-chat", tags=["Creative Studio"])
+async def run_idea_chat(request: IdeaChatRequest, background_tasks: BackgroundTasks):
+    """One turn of the AI idea-chat — the conversational alternative to
+    Keyword Planner's 'Fetch Trending Keywords' button. Converses, and
+    once ready, returns a distilled topic the frontend can move to
+    Structural Designer, exactly like a fetched keyword — does not
+    generate a structure/script itself. Returns a job_id — poll
+    GET /api/jobs/{job_id}."""
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
+    if not request.messages:
+        raise HTTPException(status_code=400, detail="At least one message is required.")
+
+    job_id = uuid.uuid4().hex[:12]
+    background_jobs[job_id] = {"status": "pending"}
+
+    def _do_chat():
+        try:
+            background_jobs[job_id]["status"] = "running"
+            agent = IdeaChatAgent(client_id=request.client_id)
+            result = agent.chat(request.messages)
+            background_jobs[job_id]["status"] = "completed"
+            background_jobs[job_id]["result"] = result
+        except Exception as e:
+            import traceback
+            with open("error.log", "a") as f:
+                f.write(traceback.format_exc() + "\n")
+            background_jobs[job_id]["status"] = "failed"
+            background_jobs[job_id]["error"] = str(e)
+
+    background_tasks.add_task(_do_chat)
+    return {"job_id": job_id}
+
 # ── Voice Sample (account-wide) ──────────────────────────────
+
+@app.get("/api/voice-categories", tags=["Voice Sample"])
+async def get_voice_categories():
+    """The 3 required categories (Satire/EAAS, Emotional/RWIT,
+    Infographic/WAAAAS) — label/concept name/description only, the same
+    source of truth the agents' prompts are built from."""
+    return categories_for_api()
+
 
 @app.get("/api/voice-sample", response_model=VoiceSample, tags=["Voice Sample"])
 async def get_voice_sample():
@@ -573,29 +619,28 @@ async def get_voice_sample():
 @app.put("/api/voice-sample", response_model=VoiceSample, tags=["Voice Sample"])
 async def update_voice_sample(update: VoiceSampleUpdate):
     """Persist edits to the account-wide Voice Sample record."""
+    current = load_voice_sample()
     record = {
-        "script_writing_voice": update.script_writing_voice,
-        "idea_categorization_voice": update.idea_categorization_voice,
+        "satire_notes": update.satire_notes,
+        "emotional_notes": update.emotional_notes,
+        "infographic_notes": update.infographic_notes,
+        "reference_profiles": current.get("reference_profiles", []),
         "updated_at": datetime.utcnow().isoformat(),
     }
     save_voice_sample(record)
     return record
 
 
-@app.post("/api/voice-sample/analyze-references", tags=["Voice Sample"])
-async def analyze_reference_reels(request: ReferenceReelAnalysisRequest, background_tasks: BackgroundTasks):
-    """Transcribe a batch of reference reels/videos and distill their
-    shared storytelling pattern into a proposed Voice Sample update.
-    Returns a job_id — poll GET /api/jobs/{job_id}. Does NOT save
-    automatically: the frontend shows the proposed script_writing_voice
-    text and the user applies it via the existing PUT /api/voice-sample,
-    same as any other manual edit."""
+@app.post("/api/voice-sample/analyze-reference", tags=["Voice Sample"])
+async def analyze_reference_reel(request: ReferenceProfileAnalyzeRequest, background_tasks: BackgroundTasks):
+    """Transcribe one reference reel and analyze its narrative pattern.
+    Returns a job_id — poll GET /api/jobs/{job_id}. Nothing is saved yet;
+    the frontend shows the analysis and the user Approves it separately
+    via POST /api/voice-sample/approve-reference."""
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    urls = [u.strip() for u in request.video_urls if u.strip()]
-    if not urls:
-        raise HTTPException(status_code=400, detail="At least one video URL is required.")
+    if not request.video_url.strip():
+        raise HTTPException(status_code=400, detail="A video URL is required.")
 
     job_id = uuid.uuid4().hex[:12]
     background_jobs[job_id] = {"status": "pending"}
@@ -604,7 +649,7 @@ async def analyze_reference_reels(request: ReferenceReelAnalysisRequest, backgro
         try:
             background_jobs[job_id]["status"] = "running"
             agent = ReferenceAnalyzerAgent()
-            result = agent.run(urls)
+            result = agent.analyze(request.video_url)
             background_jobs[job_id]["status"] = "completed"
             background_jobs[job_id]["result"] = result
         except Exception as e:
@@ -616,6 +661,37 @@ async def analyze_reference_reels(request: ReferenceReelAnalysisRequest, backgro
 
     background_tasks.add_task(_do_analyze)
     return {"job_id": job_id}
+
+
+@app.post("/api/voice-sample/approve-reference", response_model=VoiceSample, tags=["Voice Sample"])
+async def approve_reference_profile(request: ReferenceProfileApproveRequest):
+    """Save an analyzed reference reel as a named profile ("Wicked VC1",
+    "Wicked VC2", ...) — appends to the accumulating library. Structural
+    Designer and Script Writer read this list directly at generation time
+    (services/voice_categories.py-adjacent prompt building), so no merge
+    into a text blob is needed. No separate manual apply/save step; this
+    is the one-click Approve action."""
+    current = load_voice_sample()
+    profiles = current.get("reference_profiles", [])
+    profiles = profiles + [
+        {
+            "name": request.name,
+            "url": request.url,
+            "platform": request.platform,
+            "analysis": request.analysis,
+            "created_at": datetime.utcnow().isoformat(),
+        }
+    ]
+
+    record = {
+        "satire_notes": current.get("satire_notes", ""),
+        "emotional_notes": current.get("emotional_notes", ""),
+        "infographic_notes": current.get("infographic_notes", ""),
+        "reference_profiles": profiles,
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    save_voice_sample(record)
+    return record
 
 # ── Creative Studio: Remix (independent alternate entry, paste a link) ──
 
@@ -637,7 +713,7 @@ async def run_creative_studio_remix(request: CreativeStudioRemixRequest, backgro
         try:
             background_jobs[job_id]["status"] = "running"
             agent = RemixAgent(client_id=request.client_id)
-            result = agent.run(video_url=request.video_url, tone=request.tone)
+            result = agent.run(video_url=request.video_url, tone=request.tone, category=request.category)
             output = CreativeStudioRemixOutput(
                 script=result.script,
                 structure=result.structure,
