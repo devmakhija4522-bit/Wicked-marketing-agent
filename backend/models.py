@@ -140,6 +140,7 @@ class GeneratedScript(BaseModel):
     audio_direction: str = ""
     hashtags: list[str] = Field(default_factory=list)
     caption_suggestion: str = ""
+    category: str = ""  # "satire" | "emotional" | "infographic" | "" (no category selected)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -232,18 +233,34 @@ class ClientProfile(BaseModel):
 
 # ── Voice Sample (account-wide, not per-client) ───────────────
 
+class ReferenceVoiceProfile(BaseModel):
+    """A single approved reference-reel analysis, saved as a named library
+    entry — accumulates alongside previous profiles rather than replacing
+    them (e.g. "Wicked VC1", "Wicked VC2", ...)."""
+    name: str
+    url: str
+    platform: str = "unknown"
+    analysis: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class VoiceSample(BaseModel):
     """Account-wide creative voice reference used by Structural Designer
     and Script Writer, alongside (not instead of) each client's own
-    brand profile."""
-    script_writing_voice: str = ""
-    idea_categorization_voice: str = ""
+    brand profile. The three *_notes fields are optional user tuning
+    layered on top of each category's fixed concept mechanic (defined in
+    services/voice_categories.py, not stored here)."""
+    satire_notes: str = ""
+    emotional_notes: str = ""
+    infographic_notes: str = ""
+    reference_profiles: list[ReferenceVoiceProfile] = Field(default_factory=list)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class VoiceSampleUpdate(BaseModel):
-    script_writing_voice: str = ""
-    idea_categorization_voice: str = ""
+    satire_notes: str = ""
+    emotional_notes: str = ""
+    infographic_notes: str = ""
 
 
 # ── Remix: transcribe + rewrite a video link in the account's voice ──
@@ -254,6 +271,7 @@ class CreativeStudioRemixRequest(BaseModel):
     client_id: str
     video_url: str
     tone: str = ""  # optional override, e.g. "punchy", "story-driven", "educational"
+    category: str = ""  # "satire" | "emotional" | "infographic" — required by the frontend
 
 
 class CreativeStudioRemixOutput(BaseModel):
@@ -270,26 +288,29 @@ class CreativeStudioRemixOutput(BaseModel):
 
 
 # ── Voice Sample: Reference Reel Analysis ─────────────────────
+# One link at a time: analyze -> review -> Approve saves it as its own
+# named, accumulating profile (Wicked VC1, VC2, ...) rather than a single
+# blob that gets overwritten on every run.
 
-class ReferenceReelAnalysisRequest(BaseModel):
-    video_urls: list[str] = Field(default_factory=list)
+class ReferenceProfileAnalyzeRequest(BaseModel):
+    video_url: str
 
 
-class ReferenceReelSummary(BaseModel):
-    """Per-video status, so the UI can show which links transcribed fine
-    and which didn't, without burying that in the prose analysis."""
+class ReferenceProfileAnalyzeOutput(BaseModel):
     url: str
     platform: str = "unknown"
     transcribed: bool = False
     duration_seconds: Optional[int] = None
     note: str = ""
-
-
-class ReferenceReelAnalysisOutput(BaseModel):
-    videos: list[ReferenceReelSummary] = Field(default_factory=list)
     pattern_analysis: str = ""
-    updated_script_writing_voice: str = ""
-    note: str = ""
+    suggested_name: str = ""
+
+
+class ReferenceProfileApproveRequest(BaseModel):
+    name: str
+    url: str
+    platform: str = "unknown"
+    analysis: str
 
 
 # ── Creative Studio: Keyword Planner (Phase 2) ────────────────
@@ -319,10 +340,12 @@ class StructureOption(BaseModel):
     hook_direction: str
     beat_outline: list[str] = Field(default_factory=list)
     source_keyword: str = ""
+    category: str = ""  # "satire" | "emotional" | "infographic" | ""
 
 
 class StructuralDesignerRequest(BaseModel):
     client_id: str
+    category: str = ""  # "satire" | "emotional" | "infographic" — required by the frontend, defaults to the neutral fallback if omitted
 
 
 class StructuralDesignerOutput(BaseModel):
@@ -334,11 +357,29 @@ class StructuralDesignerOutput(BaseModel):
 
 class CreativeStudioScriptWriterRequest(BaseModel):
     client_id: str
+    category: str = ""  # "satire" | "emotional" | "infographic"
 
 
 class CreativeStudioScriptWriterOutput(BaseModel):
     scripts: list[GeneratedScript] = Field(default_factory=list)
     note: str = ""
+
+
+# ── Creative Studio: AI Idea Chat (alternative to Keyword Planner) ────
+# A genuine back-and-forth brainstorming chat, not a single-shot keyword
+# box — the agent converses, then once ready, returns a distilled topic
+# the user can move to Structural Designer, exactly like a fetched
+# keyword. It does not generate a structure/script itself, since that
+# now requires an explicit category chosen in the UI first.
+
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+
+class IdeaChatRequest(BaseModel):
+    client_id: str
+    messages: list[ChatMessage] = Field(default_factory=list)
 
 
 # ── Creative Studio: per-client pipeline state ────────────────

@@ -127,16 +127,25 @@ export const api = {
     apiRequest('/instagram/generate-script', { method: 'GET' }),
 
   // Voice Sample (account-wide)
+  getVoiceCategories: () =>
+    apiRequest('/api/voice-categories', { method: 'GET' }),
+
   getVoiceSample: () =>
     apiRequest('/api/voice-sample', { method: 'GET' }),
 
   saveVoiceSample: (data) =>
     apiRequest('/api/voice-sample', { method: 'PUT', body: data }),
 
-  analyzeReferenceReels: (videoUrls) =>
-    apiRequest('/api/voice-sample/analyze-references', {
+  analyzeReferenceReel: (videoUrl) =>
+    apiRequest('/api/voice-sample/analyze-reference', {
       method: 'POST',
-      body: { video_urls: videoUrls },
+      body: { video_url: videoUrl },
+    }),
+
+  approveReferenceProfile: (data) =>
+    apiRequest('/api/voice-sample/approve-reference', {
+      method: 'POST',
+      body: data,
     }),
 
   // Creative Studio: Keyword Planner + pipeline state
@@ -152,16 +161,22 @@ export const api = {
   saveCreativeStudioState: (data) =>
     apiRequest('/api/creative-studio/state', { method: 'PUT', body: data }),
 
-  runStructuralDesigner: (clientId) =>
-    apiRequest('/api/creative-studio/structural-designer', {
+  runIdeaChat: (clientId, messages) =>
+    apiRequest('/api/creative-studio/idea-chat', {
       method: 'POST',
-      body: { client_id: clientId },
+      body: { client_id: clientId, messages },
     }),
 
-  runCreativeStudioScriptWriter: (clientId) =>
+  runStructuralDesigner: (clientId, category) =>
+    apiRequest('/api/creative-studio/structural-designer', {
+      method: 'POST',
+      body: { client_id: clientId, category },
+    }),
+
+  runCreativeStudioScriptWriter: (clientId, category) =>
     apiRequest('/api/creative-studio/script-writer', {
       method: 'POST',
-      body: { client_id: clientId },
+      body: { client_id: clientId, category },
     }),
 
   // Analytics
@@ -169,10 +184,10 @@ export const api = {
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
 
   // Creative Studio: Remix (independent alternate entry, paste a link)
-  runCreativeStudioRemix: (clientId, videoUrl, tone = '') =>
+  runCreativeStudioRemix: (clientId, videoUrl, tone = '', category = '') =>
     apiRequest('/api/creative-studio/remix', {
       method: 'POST',
-      body: { client_id: clientId, video_url: videoUrl, tone },
+      body: { client_id: clientId, video_url: videoUrl, tone, category },
     }),
 };
 

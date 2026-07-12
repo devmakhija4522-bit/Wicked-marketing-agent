@@ -4,7 +4,6 @@ Writes Hinglish scripts with hook, story, brand moment, CTA, and visual notes.
 Can adapt to a user's writing style via style analysis.
 """
 
-import json
 import logging
 from typing import Optional
 
@@ -21,6 +20,7 @@ from models import (
 )
 from services.style_analyzer import analyze_style
 from services.harbour_principles import WRITING_FRAGMENT, harbour_block
+from services.voice_categories import MISDIRECTION_SKELETON, get_category_block
 
 logger = logging.getLogger("wicked.agent.script_writer")
 
@@ -29,11 +29,55 @@ class ScriptWriterAgent(BaseAgent):
     agent_name = "Script Writer"
     agent_role = "Hinglish short-form script writer and creative director"
 
-    def get_system_prompt(self) -> str:
+    def get_system_prompt(self, category: str = "") -> str:
+        category_obj, category_block = get_category_block(category)
+        # Reference-reel patterns only apply to the no-category fallback —
+        # once a category is selected, its concept block is complete and
+        # self-sufficient; layering in a reference reel's specific subject
+        # matter (whatever brand/product that reel happened to be about)
+        # risks bleeding into scripts for unrelated clients/keywords.
+        reference_block = self._reference_profiles_block() if not category else ""
+        humor_line = (
+            "4. HUMOR IS MANDATORY IN THIS CATEGORY, NOT OPTIONAL:\n"
+            "   Every script needs at least one moment that gets a real laugh or a\n"
+            "   knowing smile — not just \"light and fun tone,\" an actual joke, bit,\n"
+            "   or comedic turn a viewer would repeat to a friend. A script with no\n"
+            "   real joke in it is not done, no matter how solid the rest of it is.\n"
+            "   Toolkit:\n"
+            "   - Observational: Point out things everyone notices but nobody says\n"
+            "   - Self-deprecating: Make the narrator relatable through vulnerability\n"
+            "   - Exaggeration: Take a real situation to absurd extremes\n"
+            "   - Callback: Reference something from earlier in the script for a payoff\n"
+            "   - Status humor: Play with social dynamics (flex culture, one-upmanship)\n"
+            "   Never force a joke that undercuts the brand or feels mean-spirited —\n"
+            "   the humor should make the audience like the narrator more, not wince."
+            if category_obj and category_obj.get("humor_required")
+            else "4. HUMOR: follow the selected category's own rule on this above — "
+            "some categories forbid forcing a joke entirely; don't default to "
+            "comedy out of habit."
+        )
+        brand_moment_rule = (
+            "6. NO BRAND, NO PRODUCT — AND THAT'S FINE:\n"
+            "   You have not been given any brand or product to work into this script,\n"
+            "   deliberately. Do not invent one, do not guess one, do not write a generic\n"
+            "   \"buy this\" CTA. Write the story purely as the concept/category above\n"
+            "   demands, and let the CTA (if any) be a punchy closing line in the\n"
+            "   story's own voice, not a product plug."
+            if category
+            else "6. CRITICAL RULES FOR THE BRAND MOMENT:\n"
+            "   - The brand should enter the script like a friend's recommendation or a genuine plot twist, never like a TV commercial\n"
+            "   - Two valid ways in: (a) the character/narrator casually reveals they use the brand, positioned as a smart insider move, or (b) the story swerves into the brand in a way that's flat-out unexpected or absurd — pick whichever the story actually earns, don't default to (a) out of habit\n"
+            "   - The audience's reaction should be \"damn, that's actually smart\" OR \"wait, THAT'S what this was about?!\" — either is a win, but \"oh, this is an ad\" is the failure state"
+        )
+
         return f"""You are Script Writer — the voice of WICKED. You write Hinglish scripts for Instagram Reels and YouTube Shorts that feel like they were written by a witty, relatable Indian creator — NOT an AI, NOT a marketing team.
 
-YOUR MISSION: Turn content concepts into scroll-stopping, share-worthy scripts that are 80% entertainment and 20% brand.
+YOUR MISSION: Turn content concepts into scroll-stopping, share-worthy scripts. Entertainment and story always come first.
 {harbour_block(WRITING_FRAGMENT)}
+{MISDIRECTION_SKELETON}
+
+{category_block}
+{reference_block}
 === THE HINGLISH WRITING RULES ===
 
 1. NATURAL CODE-SWITCHING: 
@@ -51,33 +95,26 @@ YOUR MISSION: Turn content concepts into scroll-stopping, share-worthy scripts t
 
 3. PUNCHLINE PLACEMENT — THE MIDPOINT RULE:
    - Hook (0-2 sec): Pattern interrupt or bold claim, on a topic with ZERO
-     apparent connection to the brand/category. This line should be QUOTABLE.
+     apparent connection to a brand. This line should be QUOTABLE.
    - Build (5-20 sec): Escalate the SAME unrelated story/problem. Do not
-     hint at the category yet, even subtly — someone watching only up to
-     here should have no idea this is going anywhere near a brand.
-   - Twist/Brand (20-35 sec): This is where the misdirection breaks — hold
-     it as close to the video's midpoint as the format allows, then land
-     the brand as an unexpected turn. It doesn't have to be a calm, tidy
-     "natural" reveal — a flat-out absurd or surprising swerve is just as
-     valid, as long as it still makes sense in hindsight. Never let this
-     section start early "to be safe."
-   - CTA (35-45 sec): Not "buy now" — more like "ab batao, kaun hai smart?"
+     hint at any brand yet, even subtly — someone watching only up to
+     here should have no idea where this is going.
+   - Twist/Payoff (20-35 sec): This is where the misdirection breaks —
+     hold it as close to the video's midpoint as the format allows, then
+     land the payoff as an unexpected turn. It doesn't have to be a calm,
+     tidy "natural" reveal — a flat-out absurd or surprising swerve is
+     just as valid, as long as it still makes sense in hindsight. Never
+     let this section start early "to be safe."
+   - CTA (35-45 sec): A punchy, quotable closer in the story's own voice —
+     never "buy now" or a product plug unless the story genuinely earned one.
 
-4. HUMOR TOOLKIT:
-   - Observational: Point out things everyone notices but nobody says
-   - Self-deprecating: Make the narrator relatable through vulnerability
-   - Exaggeration: Take a real situation to absurd extremes
-   - Callback: Reference something from earlier in the script for a payoff
-   - Status humor: Play with social dynamics (flex culture, one-upmanship)
+{humor_line}
 
 5. SPECIFICITY > GENERALITY:
    ❌ "Product bahut accha hai"
    ✅ "Performance itni solid hai ki subah 7 baje start kiya, raat ko 11 baje bhi chal raha hai — aur maine heavy use kiya hai"
 
-6. CRITICAL RULES FOR THE BRAND MOMENT:
-   - The brand should enter the script like a friend's recommendation or a genuine plot twist, never like a TV commercial
-   - Two valid ways in: (a) the character/narrator casually reveals they use the brand, positioned as a smart insider move, or (b) the story swerves into the brand in a way that's flat-out unexpected or absurd — pick whichever the story actually earns, don't default to (a) out of habit
-   - The audience's reaction should be "damn, that's actually smart" OR "wait, THAT'S what this was about?!" — either is a win, but "oh, this is an ad" is the failure state
+{brand_moment_rule}
 
 7. VISUAL AWARENESS:
    - Write with the camera in mind. Add visual notes.
@@ -108,12 +145,34 @@ Each section should specify approximate duration.
 Include suggested hashtags and caption text.
 """
 
+    @staticmethod
+    def _reference_profiles_block() -> str:
+        profiles = load_voice_sample().get("reference_profiles", [])
+        if not profiles:
+            return ""
+        entries = "\n\n".join(
+            f"### {p.get('name', '')}\n{p.get('analysis', '')}" for p in profiles
+        )
+        return f"""
+=== REFERENCE PATTERNS (secondary — pacing/craft calibration only) ===
+These are technique notes from real reels WICKED has studied, useful for
+calibrating pacing, misdirection craft, and general execution quality.
+They are NOT the concept to follow and NOT a plot/theme to borrow from —
+the category block above governs the actual mechanic, and the concept/
+structure given in the task below govern the actual subject matter. If a
+reference pattern's specific theme or objects would pull the script away
+from the given concept, ignore that theme and keep only the craft lesson.
+{entries}
+=== END REFERENCE PATTERNS ===
+"""
+
     def run(
         self,
         concept: ContentConcept,
         style_reference: str = "",
         structure: Optional[StructureOption] = None,
         tone: str = "",
+        category: str = "",
     ) -> ScriptWriterOutput:
         """
         Write a complete Hinglish script for a content concept.
@@ -122,25 +181,27 @@ Include suggested hashtags and caption text.
             concept: The content concept to script.
             style_reference: Optional text whose writing style to mimic.
             structure: Optional structure from Structural Designer (hook
-                direction + beat outline) to follow. When given, the
-                account-wide script_writing_voice is applied strictly —
-                hook distance, bridge technique, and tone rules are
-                non-negotiable, not optional flavor.
+                direction + beat outline) to follow.
             tone: Optional one-off tone override (e.g. "punchy",
-                "story-driven", "educational") layered on top of the voice
-                rules above.
+                "story-driven", "educational") layered on top of the
+                category rules.
+            category: "satire" | "emotional" | "infographic" — selects the
+                concept mechanic (EAAS/RWIT/WAAAAS) applied in the system
+                prompt. Falls back to a neutral misdirection-only default
+                when empty (e.g. the original 5-agent pipeline, which
+                predates category selection).
 
         Returns:
             ScriptWriterOutput with the complete script.
         """
-        self.logger.info("Writing script for concept: %s", concept.title)
+        self.logger.info("Writing script for concept: %s, category=%r", concept.title, category)
 
-        structure_block = ""
+        tone_line = f"\nTone override for this script: {tone}." if tone else ""
+
+        structure_section = ""
         if structure is not None:
-            script_voice = load_voice_sample().get("script_writing_voice", "")
             beats = "\n".join(f"  - {b}" for b in structure.beat_outline)
-            tone_line = f"\nTone override for this script: {tone}." if tone else ""
-            structure_block = f"""
+            structure_section = f"""
 === STRUCTURE TO FOLLOW (non-negotiable) ===
 Hook Direction: {structure.hook_direction}
 Beat Outline:
@@ -155,10 +216,9 @@ runtime and how it misdirects beforehand, then rebuild an equivalent arc
 for THIS brand in the Hinglish voice below. Preserve the pattern, not the
 wording.
 === END STRUCTURE ===
+"""
 
-=== SCRIPT WRITING VOICE (apply strictly — hook distance, bridge technique, and tone rules are non-negotiable, not optional flavor) ===
-{script_voice}
-=== END SCRIPT WRITING VOICE ==={tone_line}
+        structure_block = f"""{structure_section}{tone_line}
 
 === OUTPUT CLEANLINESS (non-negotiable) ===
 Plain, clean text only in every field — no markdown symbols anywhere (no
@@ -182,6 +242,24 @@ loud, not a formatted document.
         }
         spec = format_specs.get(concept.format, format_specs[ContentFormat.INSTAGRAM_REEL])
 
+        category_obj, _ = get_category_block(category)
+        joke_remember_line = (
+            "\n- Land a real joke somewhere in the script — not just a witty turn of "
+            "phrase, an actual moment that would make someone laugh or grin. If nothing "
+            "in the draft would do that, rewrite until something does."
+            if category_obj and category_obj.get("humor_required")
+            else ""
+        )
+        checklist_line = (
+            f"\n- CATEGORY REQUIREMENT (mandatory, not optional flavor): {category_obj['task_checklist']}"
+            if category_obj and category_obj.get("task_checklist")
+            else ""
+        )
+        # Omit brand_angle entirely for category-driven generation — even
+        # an empty "Brand Angle:" label nudges attention toward a brand
+        # that deliberately isn't part of this prompt.
+        brand_angle_line = "" if category else f"  Brand Angle: {concept.brand_angle}\n"
+
         prompt = f"""Write a complete Hinglish script for this content concept.
 {structure_block}
 CONCEPT:
@@ -189,8 +267,7 @@ CONCEPT:
   Hook Line: {concept.hook}
   Summary: {concept.concept_summary}
   Framework: {concept.storytelling_framework}
-  Brand Angle: {concept.brand_angle}
-  Target Emotion: {concept.target_emotion}
+{brand_angle_line}  Target Emotion: {concept.target_emotion}
   Trend Reference: {concept.trend_reference}
 
 FORMAT: {spec['name']} ({spec['duration']})
@@ -227,7 +304,7 @@ Return a JSON object:
       "audio_notes": "..."
     }},
     {{
-      "section_name": "Brand Moment / Twist",
+      "section_name": "Twist / Payoff",
       "duration_seconds": "30-40s",
       "dialogue": "...",
       "visual_notes": "...",
@@ -252,11 +329,25 @@ REMEMBER:
 - Write in natural Hinglish. Not too much Hindi, not too much English. The way college students in Delhi talk.
 - The script should be ENTERTAINING first. Someone should want to watch this even if they don't care about the brand.
 - Every line should earn the next line. No filler.
-- The brand moment should feel like a natural reveal or a genuine twist, never an insertion — through roughly the midpoint of the runtime, a viewer should have zero idea this is going anywhere near a brand.
-- Include at least one quotable/meme-able line that people might use in their own conversations."""
+- The story's subject matter comes from the concept/structure above only. You have not been told what brand or product this is for — do not invent or guess one, and do not write in a device/technical/product-adjacent problem. It is completely fine, often preferable, for the script to never reference any brand, product, or company at all — do not manufacture a "brand moment" or CTA that plugs a product if the story doesn't naturally call for one.
+- Include at least one quotable/meme-able line that people might use in their own conversations.{joke_remember_line}{checklist_line}"""
 
         try:
-            result = self.call_llm_json(prompt, temperature=0.9)
+            if category:
+                # Category-driven generation is deliberately brand-agnostic
+                # — bypasses call_llm_json (which auto-appends the client's
+                # full brand profile: tagline, USPs, tone, product
+                # philosophy) so the story is never nudged toward this
+                # client's product/category. The legacy no-category path
+                # (original 5-agent pipeline) keeps brand context via
+                # call_llm_json below, unchanged.
+                result = self.llm.generate_json(
+                    prompt=prompt, system_prompt=self.get_system_prompt(category), temperature=0.9
+                )
+            else:
+                result = self.call_llm_json(
+                    prompt, system_prompt=self.get_system_prompt(category), temperature=0.9
+                )
 
             if isinstance(result, dict) and not result.get("parse_error"):
                 sections = []
@@ -283,6 +374,7 @@ REMEMBER:
                     audio_direction=result.get("audio_direction", ""),
                     hashtags=result.get("hashtags", []),
                     caption_suggestion=result.get("caption_suggestion", ""),
+                    category=category,
                 )
 
                 return ScriptWriterOutput(
@@ -306,6 +398,7 @@ REMEMBER:
                             dialogue=raw_text,
                         )
                     ],
+                    category=category,
                 )
                 return ScriptWriterOutput(
                     script=script,
@@ -322,6 +415,7 @@ REMEMBER:
                 hook_line=concept.hook,
                 full_script_text=f"Script generation failed: {str(e)}",
                 sections=[],
+                category=category,
             )
             return ScriptWriterOutput(
                 script=script,

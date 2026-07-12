@@ -37,7 +37,7 @@ class RemixAgent(BaseAgent):
     agent_name = "Remix Agent"
     agent_role = "short-form creator voice remix specialist"
 
-    def run(self, video_url: str, tone: str = "") -> RemixResult:
+    def run(self, video_url: str, tone: str = "", category: str = "") -> RemixResult:
         self.logger.info(f"Remixing: {video_url}")
 
         transcript_data = transcribe_url(video_url)
@@ -60,6 +60,7 @@ class RemixAgent(BaseAgent):
             hook_direction=hook_line or transcript[:120],
             beat_outline=beat_outline or [transcript],
             source_keyword=video_url,
+            category=category,
         )
         concept = ContentConcept(
             title=summary[:60] if summary else f"Remix ({platform})",
@@ -71,6 +72,6 @@ class RemixAgent(BaseAgent):
         )
 
         writer = ScriptWriterAgent(client_id=self.client_id)
-        result = writer.run(concept, structure=structure, tone=tone)
+        result = writer.run(concept, structure=structure, tone=tone, category=category)
 
         return RemixResult(result.script, structure, transcript, platform, summary)

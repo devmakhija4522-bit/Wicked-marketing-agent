@@ -19,6 +19,9 @@ function ScriptCard({ script, actions }) {
           {script.hashtags && script.hashtags.length > 0 && (
             <span className="badge badge-blue">{script.hashtags.length} hashtags</span>
           )}
+          {script.category && (
+            <span className="badge badge-crimson">{script.category.charAt(0).toUpperCase() + script.category.slice(1)}</span>
+          )}
         </div>
       </div>
 
@@ -63,13 +66,29 @@ export default function InstagramScripts() {
     navigator.clipboard.writeText(text);
   };
 
+  // --- Voice Sample category (required — Satire/Emotional/Infographic) ---
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  useEffect(() => {
+    api.getVoiceCategories().then(setCategories).catch((e) => console.error(e));
+  }, []);
+
   // --- Content Generator: Keyword Planner ---
   const [kpLoading, setKpLoading] = useState(false);
   const [kpResult, setKpResult] = useState(null);
   const [selectedKeywords, setSelectedKeywords] = useState({});
   const [moving, setMoving] = useState(false);
   const [movedKeywords, setMovedKeywords] = useState(null);
-  const [manualKeyword, setManualKeyword] = useState('');
+
+  // --- Content Generator: AI Idea Chat (alternative to Fetch Trending Keywords) ---
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
+  const [chatJobId, setChatJobId] = useState(null);
+  const [chatError, setChatError] = useState(null);
+  const [movingChatTopicIds, setMovingChatTopicIds] = useState({});
+  const [movedChatTopicIds, setMovedChatTopicIds] = useState({});
 
   // --- Content Generator: Structural Designer ---
   const [sdLoading, setSdLoading] = useState(false);
@@ -106,23 +125,78 @@ export default function InstagramScripts() {
     }
   };
 
-  const handleAddManualKeyword = () => {
-    const phrase = manualKeyword.trim();
-    if (!phrase) return;
-    const alreadyExists = (kpResult?.keywords || []).some(
-      (k) => k.phrase.toLowerCase() === phrase.toLowerCase()
-    );
-    if (alreadyExists) {
-      setManualKeyword('');
-      return;
+  const handleSendChatMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || !activeClient || chatSending) return;
+    const nextMessages = [...chatMessages, { role: 'user', content: text }];
+    setChatMessages(nextMessages);
+    setChatInput('');
+    setChatSending(true);
+    setChatError(null);
+    try {
+      const { job_id } = await api.runIdeaChat(
+        activeClient.id,
+        nextMessages.map((m) => ({ role: m.role, content: m.content }))
+      );
+      setChatJobId(job_id);
+    } catch (e) {
+      setChatError(e.message || 'Failed to send message.');
+      setChatSending(false);
     }
-    const newKw = { phrase, source_note: 'Typed manually' };
-    setKpResult((prev) => ({
-      note: prev?.note || '',
-      keywords: [newKw, ...(prev?.keywords || [])],
-    }));
-    setSelectedKeywords((prev) => ({ ...prev, [phrase]: newKw }));
-    setManualKeyword('');
+  };
+
+  useEffect(() => {
+    if (!chatJobId) return;
+    const interval = setInterval(async () => {
+      try {
+        const status = await api.getJobStatus(chatJobId);
+        if (status.status === 'completed') {
+          clearInterval(interval);
+          const r = status.result;
+          setChatMessages((prev) => [
+            ...prev,
+            { role: 'assistant', content: r.reply, ready: r.ready, topic: r.topic },
+          ]);
+          setChatSending(false);
+          setChatJobId(null);
+        } else if (status.status === 'failed') {
+          clearInterval(interval);
+          setChatError(status.error || 'Chat failed.');
+          setChatSending(false);
+          setChatJobId(null);
+        }
+      } catch (e) {
+        clearInterval(interval);
+        setChatError(e.message || 'Failed to fetch job status.');
+        setChatSending(false);
+        setChatJobId(null);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [chatJobId]);
+
+  const handleMoveChatTopicToStructuralDesigner = async (topic, idx) => {
+    if (!activeClient || !topic) return;
+    const keyword = { phrase: topic, source_note: 'From AI chat' };
+    setMovingChatTopicIds((prev) => ({ ...prev, [idx]: true }));
+    try {
+      await api.saveCreativeStudioState({
+        client_id: activeClient.id,
+        selected_keywords: [keyword],
+        selected_structures: [],
+      });
+      setMovedKeywords([keyword]);
+      setSdResult(null);
+      setSelectedStructures({});
+      setMovedStructures(null);
+      setSwResult(null);
+      setMovedChatTopicIds((prev) => ({ ...prev, [idx]: true }));
+    } catch (e) {
+      console.error(e);
+      alert('Failed to move to Structural Designer.');
+    } finally {
+      setMovingChatTopicIds((prev) => ({ ...prev, [idx]: false }));
+    }
   };
 
   const toggleKeyword = (kw) => {
@@ -160,13 +234,13 @@ export default function InstagramScripts() {
   };
 
   const handleDesignStructures = async () => {
-    if (!activeClient || !hasMovedKeywords) return;
+    if (!activeClient || !hasMovedKeywords || !selectedCategory) return;
     setSdLoading(true);
     setSdResult(null);
     setSelectedStructures({});
     setMovedStructures(null);
     try {
-      const data = await api.runStructuralDesigner(activeClient.id);
+      const data = await api.runStructuralDesigner(activeClient.id, selectedCategory);
       setSdResult(data);
     } catch (e) {
       console.error(e);
@@ -215,7 +289,7 @@ export default function InstagramScripts() {
     setSavingScriptIds({});
     setSavedScriptIds({});
     try {
-      const data = await api.runCreativeStudioScriptWriter(activeClient.id);
+      const data = await api.runCreativeStudioScriptWriter(activeClient.id, selectedCategory);
       setSwResult(data);
     } catch (e) {
       console.error(e);
@@ -259,15 +333,16 @@ export default function InstagramScripts() {
   const [remixSelected, setRemixSelected] = useState(false);
   const [remixMoving, setRemixMoving] = useState(false);
   const [remixMoved, setRemixMoved] = useState(false);
+  const [remixCategory, setRemixCategory] = useState('');
 
   const handleRemixVideo = () => {
-    if (!remixUrl.trim() || !activeClient) return;
+    if (!remixUrl.trim() || !activeClient || !remixCategory) return;
     setRemixLoading(true);
     setRemixError(null);
     setRemixResult(null);
     setRemixSelected(false);
     setRemixMoved(false);
-    api.runCreativeStudioRemix(activeClient.id, remixUrl.trim(), remixTone)
+    api.runCreativeStudioRemix(activeClient.id, remixUrl.trim(), remixTone, remixCategory)
       .then((response) => setRemixJobId(response.job_id))
       .catch((err) => {
         setRemixError(err.message || 'Failed to start remix job.');
@@ -368,6 +443,25 @@ export default function InstagramScripts() {
       <section className="creative-studio-feature">
         <p className="creative-studio-feature-subtitle">Keyword Planner → Structural Designer → Script Writer.</p>
 
+        <div className="kp-section glass category-picker-section">
+          <label className="voice-category-notes-label">Category (required)</label>
+          <p className="field-hint">Every structure and script is written through one of these — pick before designing structures.</p>
+          <div className="category-picker-row">
+            {categories.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                className={`category-pill ${selectedCategory === cat.key ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(cat.key)}
+                title={cat.short_description}
+              >
+                {cat.label}
+                <span className="category-pill-concept">{cat.concept_name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="pipeline-stages">
           {/* Stage 1: Keyword Planner — always active */}
           <div className="kp-section glass">
@@ -378,22 +472,6 @@ export default function InstagramScripts() {
             <div className="kp-search-row">
               <button className="btn btn-primary" onClick={handleFetchTrendingKeywords} disabled={kpLoading}>
                 {kpLoading ? <span className="btn-spinner" /> : '✨'} Fetch Trending Keywords
-              </button>
-              <span className="kp-or-divider">or</span>
-              <input
-                type="text"
-                className="glass-input"
-                placeholder="Type your own keyword…"
-                value={manualKeyword}
-                onChange={(e) => setManualKeyword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddManualKeyword()}
-              />
-              <button
-                className="btn btn-secondary"
-                onClick={handleAddManualKeyword}
-                disabled={!manualKeyword.trim()}
-              >
-                ➕ Add
               </button>
             </div>
 
@@ -451,6 +529,68 @@ export default function InstagramScripts() {
             {hasMovedKeywords && (
               <span className="kp-moved-indicator">Carried forward: {movedKeywords.length} keyword{movedKeywords.length === 1 ? '' : 's'} ✓</span>
             )}
+
+            <div className="idea-chat-panel">
+              <div className="idea-chat-divider"><span>or chat with AI</span></div>
+              <p className="idea-chat-subtitle">
+                Riff on an idea like you're brainstorming with a creative partner — WICKED will
+                ask questions, then once it's got enough to work with, you can move that topic
+                straight to Structural Designer below (pick a category above first).
+              </p>
+
+              <div className="idea-chat-messages">
+                {chatMessages.length === 0 && !chatSending && (
+                  <p className="idea-chat-empty">
+                    Try something like "give me an idea about our new trade-in offer" to get started.
+                  </p>
+                )}
+                {chatMessages.map((m, idx) => (
+                  <div key={idx} className={`idea-chat-bubble ${m.role}`}>
+                    <p>{m.content}</p>
+                    {m.ready && m.topic && (
+                      <div className="idea-chat-move-row">
+                        <span className="kp-source-note">Topic: {m.topic}</span>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => handleMoveChatTopicToStructuralDesigner(m.topic, idx)}
+                          disabled={movingChatTopicIds[idx] || movedChatTopicIds[idx]}
+                        >
+                          {movingChatTopicIds[idx] ? <span className="btn-spinner" /> : null}
+                          {movedChatTopicIds[idx] ? '✅ Moved' : 'Move to Structural Designer →'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {chatSending && (
+                  <div className="idea-chat-bubble assistant idea-chat-typing">
+                    <span className="btn-spinner" /> thinking…
+                  </div>
+                )}
+              </div>
+
+              {chatError && <p className="kp-note remix-error-note">{chatError}</p>}
+
+              <div className="idea-chat-input-row">
+                <input
+                  type="text"
+                  placeholder="Tell WICKED what you're thinking…"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendChatMessage()}
+                  disabled={chatSending}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSendChatMessage}
+                  disabled={chatSending || !chatInput.trim()}
+                >
+                  {chatSending ? <span className="btn-spinner" /> : 'Send'}
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Stage 2: Structural Designer — locked until keywords are moved forward */}
@@ -468,10 +608,11 @@ export default function InstagramScripts() {
             ) : (
               <>
                 <div className="kp-search-row">
-                  <button className="btn btn-primary" onClick={handleDesignStructures} disabled={sdLoading}>
+                  <button className="btn btn-primary" onClick={handleDesignStructures} disabled={sdLoading || !selectedCategory}>
                     {sdLoading ? <span className="btn-spinner" /> : '🧱'} Design Structures
                   </button>
                 </div>
+                {!selectedCategory && <p className="kp-note">Pick a category above first.</p>}
 
                 {sdLoading && <div className="skeleton skeleton-text" style={{ height: '150px', marginTop: '1rem' }} />}
 
@@ -626,8 +767,24 @@ export default function InstagramScripts() {
             </select>
           </div>
 
+          <div className="kp-search-row category-picker-row">
+            {categories.map((cat) => (
+              <button
+                key={cat.key}
+                type="button"
+                className={`category-pill ${remixCategory === cat.key ? 'active' : ''}`}
+                onClick={() => setRemixCategory(cat.key)}
+                title={cat.short_description}
+              >
+                {cat.label}
+                <span className="category-pill-concept">{cat.concept_name}</span>
+              </button>
+            ))}
+          </div>
+          {!remixCategory && <p className="kp-note">Pick a category above first.</p>}
+
           <div className="kp-search-row">
-            <button className="btn btn-primary" onClick={handleRemixVideo} disabled={remixLoading || !remixUrl.trim()}>
+            <button className="btn btn-primary" onClick={handleRemixVideo} disabled={remixLoading || !remixUrl.trim() || !remixCategory}>
               {remixLoading ? <span className="btn-spinner" /> : '🎬'} {remixLoading ? 'Transcribing & writing…' : 'Remix this video'}
             </button>
           </div>
