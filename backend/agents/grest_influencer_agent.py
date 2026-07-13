@@ -35,6 +35,11 @@ class GrestInfluencerAgent(BaseAgent):
         follower_count = criteria.get('followerCount', '50k - 100k')
         city = criteria.get('city', 'India')
 
+        # Broad categories have a much larger real candidate pool than a
+        # narrow niche — scale the target count accordingly instead of a
+        # single fixed cap that starved broad searches down to ~5 results.
+        target_count = 30 if category.strip().lower() in ("all", "general", "") else 15
+
         city_line = (
             "- Target City: No location restriction — creators from anywhere in India are fine."
             if city.strip().lower() in ("all india", "india", "")
@@ -77,10 +82,11 @@ STRICT VERIFICATION & QUALITY CONTROL (BACKEND ONLY):
    - *Pattern 2:* Comments are generic (e.g., "nice", "fire emoji", spam) rather than actual community discussion.
    - *Action:* If you detect these patterns of fake engagement, DISCARD the profile and find another one. Only recommend creators with authentic, organic engagement.
 
-Provide up to 5 solid, verified recommendations. Returning fewer than 5 — or even zero —
-is CORRECT and PREFERRED over including a single influencer whose profile URL you did not
-explicitly see in your search results. You will not be penalized for a short list; you will
-be penalized for a fabricated one.
+Provide up to {target_count} solid, verified recommendations — this is a target, not a quota,
+so keep searching until you've genuinely exhausted real, verifiable candidates rather than
+stopping early. Returning fewer than {target_count} — or even zero — is CORRECT and PREFERRED
+over including a single influencer whose profile URL you did not explicitly see in your search
+results. You will not be penalized for a short list; you will be penalized for a fabricated one.
 
 CRITICAL INSTRUCTION: 
 You MUST output your response as a valid, raw JSON array of objects. Do NOT include markdown code blocks like ```json or anything else. JUST the raw JSON.
@@ -98,7 +104,8 @@ The JSON array MUST follow this exact schema:
 """
 
         prompt = f"""
-Find up to 5 highly relevant influencers based on the provided criteria.
+Find up to {target_count} highly relevant influencers based on the provided criteria — search
+broadly and thoroughly to reach that target if the category genuinely supports it.
 Only include a profile if you saw its exact URL in your search results — a shorter,
 fully-verified list is required over padding the list with guessed profiles.
 Output strictly as a valid JSON array.
