@@ -37,10 +37,17 @@ _NVIDIA_FALLBACK_MODELS = [
 _NVIDIA_TIMEOUT_SECONDS = 30.0
 
 
+class EmptyResponseError(RuntimeError):
+    """Gemini returned a candidate with no usable text (finish_reason=None
+    or similar) — seen most often with google_search grounding. Usually
+    transient, so this is retried like a 5xx rather than failing the
+    request on the first empty response."""
+
+
 def _is_retryable(exc: Exception) -> bool:
     if isinstance(exc, genai_errors.APIError):
         return exc.code in _RETRYABLE_STATUS_CODES
-    return isinstance(exc, (httpx.TimeoutException, httpx.ConnectError))
+    return isinstance(exc, (httpx.TimeoutException, httpx.ConnectError, EmptyResponseError))
 
 
 class LLMService:
@@ -88,7 +95,7 @@ class LLMService:
                     text = self._extract_text_fallback(response)
                 if text is None:
                     reason = self._describe_empty_response(response)
-                    raise RuntimeError(f"Gemini returned no text content ({reason})")
+                    raise EmptyResponseError(f"Gemini returned no text content ({reason})")
                 return text.strip()
             except Exception as e:
                 last_error = e
