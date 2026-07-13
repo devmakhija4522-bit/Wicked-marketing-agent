@@ -19,6 +19,22 @@ _YOUTUBE_CHANNELS_URL = "https://www.googleapis.com/youtube/v3/channels"
 _YOUTUBE_MAX_INACTIVE_DAYS = 30
 _MAX_COVERED_IN_PROMPT = 40  # cap the "already suggested" list injected into the prompt to bound token growth
 
+# Mirrors the concrete options in the frontend's category dropdown
+# (frontend/src/pages/InfluencerScout.jsx) — excludes the meta-options
+# "All"/"General"/"Other" since those aren't niches themselves.
+_CONCRETE_CATEGORIES = [
+    "Tech",
+    "Lifestyle",
+    "Gaming",
+    "Review and experience",
+    "GenZ creators",
+    "Corporate employee influencer",
+    "Unboxing & Reviews",
+    "Vlogs",
+    "Reels & Shorts",
+    "Dedicated Integration",
+]
+
 class GrestInfluencerAgent(BaseAgent):
     """
     Finds potential influencers based on flexible user criteria.
@@ -38,7 +54,22 @@ class GrestInfluencerAgent(BaseAgent):
         # Broad categories have a much larger real candidate pool than a
         # narrow niche — scale the target count accordingly instead of a
         # single fixed cap that starved broad searches down to ~5 results.
-        target_count = 30 if category.strip().lower() in ("all", "general", "") else 15
+        is_broad_category = category.strip().lower() in ("all", "general", "")
+        target_count = 30 if is_broad_category else 15
+
+        # "All" was previously passed through to the model as the literal
+        # word "All", which gave it no real guidance and led to unfocused,
+        # low-quality results. Expand it into an explicit spread across the
+        # dropdown's actual concrete categories instead.
+        if is_broad_category:
+            category_line = (
+                f"- Category/Niche/Content Style: All — aim for a genuine SPREAD across these "
+                f"concrete categories rather than an unfocused mix: {', '.join(_CONCRETE_CATEGORIES)}. "
+                f"Roughly {max(1, target_count // len(_CONCRETE_CATEGORIES))}-{target_count // 3} per "
+                f"category is a reasonable spread, not a strict quota per category."
+            )
+        else:
+            category_line = f"- Category/Niche/Content Style: {category}"
 
         city_line = (
             "- Target City: No location restriction — creators from anywhere in India are fine."
@@ -68,15 +99,15 @@ Your task is to find the best influencer matches based on these specific criteri
 
 CRITERIA:
 - Platform: {platform}
-- Category/Niche/Content Style: {category}
-- Follower Count: approximately {follower_count} (a reasonable, good-faith estimate is fine — see note below)
+{category_line}
+- Follower Count: {follower_count} — this is a real filter, not a suggestion (see note below)
 {city_line}
 {already_suggested_block}
 Use the web to search for real, active influencers that match this criteria.
 
 STRICT VERIFICATION & QUALITY CONTROL (BACKEND ONLY):
 1. **ABSOLUTELY NO HALLUCINATIONS ON IDENTITY — this is the one hard rule:** You must NEVER guess an Instagram or YouTube handle. Do not assume that if someone's name is "John Doe", their handle is "instagram.com/johndoe". YOU MUST only provide a URL if you explicitly saw that exact URL written out in your web search results. If you cannot find their explicit, exact profile URL in the search results, DO NOT include them in the list. This rule is non-negotiable.
-2. **Follower count and city are soft targets, not proof requirements:** Search results rarely state an exact subscriber count or explicit audience geography in plain text. Use your best good-faith judgment from whatever context is available (channel description, video content, comments, related coverage) to estimate whether a REAL, VERIFIED creator (per rule 1) is a reasonable fit for the requested follower range and city. Do not discard an otherwise real, correctly-identified creator just because you can't find an exact quoted number or an explicit "based in X" statement — approximate is fine here. Note in "reasoning" when a figure is an estimate.
+2. **Follower count is a real numeric filter — being close is fine, being wrong by an order of magnitude is not.** City is a soft target (exact audience geography is rarely stated in plain text, so a broad "based in India" fit is fine); follower count is NOT — the number is almost always visible right on the profile itself. Only include a creator whose actual, observed follower count on their profile genuinely falls within (or is close to, e.g. within ~30% of either edge of) the requested range — a creator with 200 followers is NEVER a fit for a "10k-50k" request, full stop, no matter how well their content matches the category. If you cannot see or reasonably confirm the follower count from your search results, DO NOT include them — do not guess a number to make them fit. Note the actual observed count in "followers", not a rounded restatement of the request.
 3. **FAKE FOLLOWER DETECTION:** You must analyze the influencer's engagement patterns. Look for red flags that indicate purchased fake followers or boosted bot engagement.
    - *Pattern 1:* Extremely high follower count (e.g., 500k+) but very low average likes/comments on videos (e.g., < 1,000 likes).
    - *Pattern 2:* Comments are generic (e.g., "nice", "fire emoji", spam) rather than actual community discussion.
@@ -124,11 +155,81 @@ Output strictly as a valid JSON array.
 
         if isinstance(result, list):
             result = self._drop_dead_links(result)
+            result = self._drop_outside_follower_range(result, follower_count)
             result = self._drop_already_covered(result, covered_keys)
             if result:
                 mark_influencers_covered(self.client_id, result)
 
         return json.dumps(result)
+
+    def _drop_outside_follower_range(self, influencers: list, follower_count_str: str) -> list:
+        """Belt-and-suspenders, same reasoning as _drop_dead_links: the
+        prompt tells the model follower count is a real filter, but it has
+        still returned wildly-out-of-range profiles (e.g. a 200-follower
+        account for a "10k-50k" request) despite that instruction. Drops
+        anything clearly outside a generous tolerance band around the
+        requested range rather than trusting the model's own claim."""
+        target = self._parse_follower_range(follower_count_str)
+        if target is None:
+            return influencers  # unrecognized range string — can't verify, don't punish
+
+        lo, hi = target
+        # Generous slack around the requested band — enough to keep a
+        # reasonable "soft estimate" from the model, tight enough to
+        # reject an order-of-magnitude miss.
+        band_lo, band_hi = lo * 0.5, (hi if hi is not None else lo * 3) * 2.5
+
+        kept = []
+        for inf in influencers:
+            if not isinstance(inf, dict):
+                continue
+            count = self._parse_follower_count(inf.get("followers", ""))
+            if count is None:
+                kept.append(inf)  # can't verify from the claim — don't punish, _drop_dead_links already checked identity
+                continue
+            if band_lo <= count <= band_hi:
+                kept.append(inf)
+            else:
+                self.logger.warning(
+                    "Dropping %s: followers=%s outside requested range %s",
+                    inf.get("name") or inf.get("handle"), inf.get("followers"), follower_count_str,
+                )
+        return kept
+
+    @staticmethod
+    def _parse_follower_range(range_str: str) -> Optional[tuple[float, Optional[float]]]:
+        """Parses the frontend's fixed dropdown strings, e.g. "10k - 50k
+        (Micro)" -> (10_000, 50_000), "1M+ (Mega)" -> (1_000_000, None)."""
+        numbers = re.findall(r"[\d.]+\s*[kKmM]?\+?", range_str or "")
+        parsed = [GrestInfluencerAgent._parse_follower_count(n) for n in numbers]
+        parsed = [p for p in parsed if p is not None]
+        if not parsed:
+            return None
+        if len(parsed) == 1:
+            return parsed[0], None
+        return min(parsed), max(parsed)
+
+    @staticmethod
+    def _parse_follower_count(value) -> Optional[float]:
+        """Parses a human-written follower count like "51K+", "25k",
+        "1.2M", "200", "10,000" into a plain number. Returns None if it
+        can't confidently parse (treated as unverifiable, not a failure)."""
+        if value is None:
+            return None
+        s = str(value).strip().replace(",", "")
+        m = re.match(r"^([\d.]+)\s*([kKmM]?)\+?$", s)
+        if not m:
+            return None
+        try:
+            num = float(m.group(1))
+        except ValueError:
+            return None
+        suffix = m.group(2).lower()
+        if suffix == "k":
+            num *= 1_000
+        elif suffix == "m":
+            num *= 1_000_000
+        return num
 
     def _drop_already_covered(self, influencers: list, covered_keys: set) -> list:
         """Belt-and-suspenders: the prompt tells the model not to repeat
