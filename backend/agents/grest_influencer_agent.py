@@ -384,13 +384,21 @@ Output strictly as a valid JSON array.
             return "forHandle", handle.lstrip("@")
         return "", ""
 
+    _IG_MAX_ATTEMPTS = 3
+    _IG_RETRY_BACKOFF_SECONDS = 1.5
+
     def _instagram_profile_exists(self, url: str, handle: str) -> bool:
         """Instagram serves an identical generic 200 page for real and fake
         profiles to unauthenticated/bot requests, so a plain HTTP check can't
         tell them apart — this uses the RapidAPI Instagram Scraper lookup
-        instead. If it's not configured, or the response doesn't match a shape
-        we recognize, we fail open (keep the entry) rather than risk dropping
-        real profiles based on a guess about the API's schema."""
+        instead. For a genuinely ambiguous response (network-level error,
+        unexpected schema) we fail open rather than guess. But 401/403
+        (subscription inactive/misconfigured) or a 429 that persists after
+        retrying means NOTHING can be verified at all for that profile —
+        failing open there would silently accept every fabricated profile
+        the model returns, which is exactly what was happening in practice
+        (RapidAPI's free-tier rate limit is low enough that back-to-back
+        checks across a candidate list routinely hit 429)."""
         if not settings.has_instagram:
             return True
 
@@ -398,28 +406,64 @@ Output strictly as a valid JSON array.
         if not username:
             return True
 
-        try:
-            resp = httpx.get(
-                f"https://{settings.rapidapi_instagram_host}/v1/info",
-                headers={
-                    "x-rapidapi-key": settings.rapidapi_key,
-                    "x-rapidapi-host": settings.rapidapi_instagram_host,
-                },
-                params={"username_or_id_or_url": username},
-                timeout=10.0,
-            )
+        for attempt in range(1, self._IG_MAX_ATTEMPTS + 1):
+            try:
+                resp = httpx.get(
+                    f"https://{settings.rapidapi_instagram_host}/v1/info",
+                    headers={
+                        "x-rapidapi-key": settings.rapidapi_key,
+                        "x-rapidapi-host": settings.rapidapi_instagram_host,
+                    },
+                    params={"username_or_id_or_url": username},
+                    timeout=10.0,
+                )
+            except (httpx.HTTPError, ValueError) as e:
+                self.logger.warning(f"Instagram verification failed for @{username}, keeping (inconclusive): {e}")
+                return True
+
             if resp.status_code == 404:
                 return False
-            resp.raise_for_status()
-            data = resp.json()
+
+            if resp.status_code == 429:
+                if attempt < self._IG_MAX_ATTEMPTS:
+                    wait = self._IG_RETRY_BACKOFF_SECONDS * attempt
+                    self.logger.warning(
+                        "RapidAPI Instagram rate-limited (429) for @%s, retrying in %ss (attempt %d/%d)",
+                        username, wait, attempt, self._IG_MAX_ATTEMPTS,
+                    )
+                    time.sleep(wait)
+                    continue
+                self.logger.error(
+                    "RapidAPI Instagram still rate-limited (429) after %d attempts for @%s — "
+                    "rejecting rather than accepting an unverifiable profile.",
+                    self._IG_MAX_ATTEMPTS, username,
+                )
+                return False
+
+            if resp.status_code in (401, 403):
+                self.logger.error(
+                    "RapidAPI Instagram verification is not usable (HTTP %s: %s) — the "
+                    "RapidAPI subscription for '%s' appears inactive. Rejecting @%s rather "
+                    "than accepting an unverifiable profile — check the RapidAPI dashboard "
+                    "subscription for this API.",
+                    resp.status_code, resp.text[:200], settings.rapidapi_instagram_host, username,
+                )
+                return False
+
+            try:
+                resp.raise_for_status()
+                data = resp.json()
+            except (httpx.HTTPError, ValueError) as e:
+                self.logger.warning(f"Instagram verification failed for @{username}, keeping (inconclusive): {e}")
+                return True
+
             if isinstance(data, dict) and not data.get("data") and (
                 data.get("error") or data.get("exc_type") or data.get("message")
             ):
                 return False
             return True
-        except (httpx.HTTPError, ValueError) as e:
-            self.logger.warning(f"Instagram verification failed for @{username}, keeping (inconclusive): {e}")
-            return True
+
+        return False  # unreachable, but fail closed rather than open if it ever is
 
     @staticmethod
     def _extract_instagram_username(url: str) -> str:
