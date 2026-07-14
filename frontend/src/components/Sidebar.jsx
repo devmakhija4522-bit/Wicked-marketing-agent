@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useClient } from '../context/ClientContext.jsx';
 import './Sidebar.css';
@@ -8,10 +8,6 @@ const agencyItems = [
   { path: '/clients', label: 'Manage Clients', emoji: '👥' },
   { path: '/voice-sample', label: 'Voice Sample', emoji: '🎙️' },
   { path: '/settings', label: 'Settings', emoji: '⚙️' },
-];
-
-const workspaceItems = [
-  { path: '/trends', label: 'Trends', emoji: '🔥' },
 ];
 
 export default function Sidebar() {
@@ -52,29 +48,6 @@ export default function Sidebar() {
               )}
             </NavLink>
           ))}
-
-          {activeClient && (
-            <>
-              {workspaceItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `nav-item ${isActive ? 'nav-item-active' : ''}`
-                  }
-                  end={item.path === '/'}
-                >
-                  <span className="nav-icon">{item.emoji}</span>
-                  <span className="nav-label">{item.label}</span>
-                  {location.pathname === item.path && (
-                    <span className="nav-active-indicator" />
-                  )}
-                </NavLink>
-              ))}
-              
-
-            </>
-          )}
         </nav>
 
         <div className="sidebar-bottom">
