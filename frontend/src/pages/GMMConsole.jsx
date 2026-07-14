@@ -61,6 +61,13 @@ export default function GMMConsole() {
         </button>
         <button
           className="btn btn-primary"
+          onClick={() => navigate('/trends')}
+          style={{ background: 'linear-gradient(135deg, #f97316 0%, #dc2626 100%)', border: 'none' }}
+        >
+          <span style={{ marginRight: '0.5rem' }}>🔥</span> Trends
+        </button>
+        <button
+          className="btn btn-primary"
           onClick={() => navigate('/vault')}
           style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none' }}
         >
