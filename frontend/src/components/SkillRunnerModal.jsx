@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useClient } from '../context/ClientContext.jsx';
 import { api } from '../utils/api.js';
 import './SkillRunnerModal.css';
@@ -148,7 +149,16 @@ export default function SkillRunnerModal({ skill, onClose, historyEntry = null }
 
           {result && (
             <div className="skill-modal-result">
-              <ReactMarkdown>{result}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  table: ({ children }) => (
+                    <div className="skill-modal-table-wrap"><table>{children}</table></div>
+                  ),
+                }}
+              >
+                {result}
+              </ReactMarkdown>
 
               {htmlBlocks.map((html, idx) => (
                 <div key={idx} className="skill-ad-preview">
