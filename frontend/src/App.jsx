@@ -3,18 +3,13 @@ import { ClientProvider } from './context/ClientContext.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Clients from './pages/Clients.jsx';
-import Trends from './pages/Trends.jsx';
 import ContentLab from './pages/ContentLab.jsx';
-import Vault from './pages/Vault.jsx';
 import GMMConsole from './pages/GMMConsole.jsx';
 import StyleProfile from './pages/StyleProfile.jsx';
 import Settings from './pages/Settings.jsx';
-import LinkedInDrafts from './pages/LinkedInDrafts.jsx';
-import InstagramScripts from './pages/InstagramScripts.jsx';
 import Analytics from './pages/Analytics.jsx';
-import LinkedInStorage from './pages/LinkedInStorage.jsx';
 import InfluencerScout from './pages/InfluencerScout.jsx';
-import VoiceSample from './pages/VoiceSample.jsx';
+import SkillCategoryPage from './pages/SkillCategoryPage.jsx';
 
 export default function App() {
   return (
@@ -26,16 +21,11 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/gmm/:clientId" element={<GMMConsole />} />
-            <Route path="/trends" element={<Trends />} />
-          <Route path="/linkedin" element={<LinkedInDrafts />} />
-          <Route path="/linkedin-storage" element={<LinkedInStorage />} />
-          <Route path="/instagram" element={<InstagramScripts />} />
           <Route path="/influencers" element={<InfluencerScout />} />
+          <Route path="/skills/:category" element={<SkillCategoryPage />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/lab" element={<ContentLab />} />
-          <Route path="/vault" element={<Vault />} />
           <Route path="/style" element={<StyleProfile />} />
-          <Route path="/voice-sample" element={<VoiceSample />} />
           <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>

@@ -6,7 +6,6 @@ import './Sidebar.css';
 const agencyItems = [
   { path: '/', label: 'Dashboard', emoji: '🏠' },
   { path: '/clients', label: 'Manage Clients', emoji: '👥' },
-  { path: '/voice-sample', label: 'Voice Sample', emoji: '🎙️' },
   { path: '/settings', label: 'Settings', emoji: '⚙️' },
 ];
 

@@ -21,10 +21,9 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CLIENTS_DIR = DATA_DIR / "clients"
-SCRIPTS_FILE = DATA_DIR / "generated_scripts.json"
 COVERED_INFLUENCERS_FILE = DATA_DIR / "covered_influencers.json"
 VOICE_SAMPLE_FILE = DATA_DIR / "voice_sample.json"
-CREATIVE_STUDIO_STATE_FILE = DATA_DIR / "creative_studio_state.json"
+SKILL_RUNS_FILE = DATA_DIR / "skill_runs.json"
 
 
 class Settings(BaseSettings):
@@ -57,12 +56,6 @@ class Settings(BaseSettings):
     # see services/llm_service.py. Free tier at build.nvidia.com; one key
     # works across all NVIDIA-hosted models.
     nvidia_api_key: str = ""
-
-    # --- Creative framework ---
-    # Toggles the Harbour creative-principles prompt additions in the ideation/
-    # writing/critique agents. Off = exact prior prompt behavior, for rollback
-    # or A/B comparison.
-    harbour_mode_enabled: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
@@ -235,59 +228,6 @@ def load_voice_sample() -> dict:
     return seed
 
 
-def _load_creative_studio_state_file() -> dict:
-    if CREATIVE_STUDIO_STATE_FILE.exists():
-        try:
-            with open(CREATIVE_STUDIO_STATE_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if isinstance(data, dict):
-                return data
-        except (json.JSONDecodeError, IOError) as e:
-            logger.error(f"Could not read {CREATIVE_STUDIO_STATE_FILE}: {e}")
-    return {}
-
-
-def load_creative_studio_state(client_id: str) -> dict:
-    """Load this client's Creative Studio pipeline state (selections carried
-    forward between Keyword Planner -> Structural Designer -> Script Writer)."""
-    if db is not None:
-        try:
-            doc = db.creative_studio_state.find_one({"client_id": client_id}, {"_id": 0})
-            if doc:
-                return doc
-        except Exception as e:
-            logger.error(f"Failed to fetch creative studio state for '{client_id}' from MongoDB: {e}")
-
-    state = _load_creative_studio_state_file().get(client_id)
-    if state:
-        return state
-
-    return {"client_id": client_id, "selected_keywords": [], "selected_structures": []}
-
-
-def save_creative_studio_state(client_id: str, data: dict) -> None:
-    """Persist this client's Creative Studio pipeline state to both MongoDB
-    and local storage."""
-    record = {**data, "client_id": client_id, "updated_at": datetime.utcnow().isoformat()}
-
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    try:
-        all_state = _load_creative_studio_state_file()
-        all_state[client_id] = record
-        with open(CREATIVE_STUDIO_STATE_FILE, "w", encoding="utf-8") as f:
-            json.dump(all_state, f, indent=2, ensure_ascii=False)
-    except IOError as e:
-        logger.error(f"Failed to save {CREATIVE_STUDIO_STATE_FILE}: {e}")
-
-    if db is not None:
-        try:
-            db.creative_studio_state.update_one(
-                {"client_id": client_id}, {"$set": record}, upsert=True
-            )
-        except Exception as e:
-            logger.error(f"Failed to save creative studio state for '{client_id}' to MongoDB: {e}")
-
-
 def save_voice_sample(data: dict) -> None:
     """Persist the account-wide Voice Sample record to both MongoDB and
     local storage, following the same dual-write pattern as client
@@ -315,36 +255,6 @@ def load_content_templates() -> dict:
     templates_path = DATA_DIR / "content_templates.json"
     with open(templates_path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-def load_generated_scripts() -> list[dict]:
-    """Load previously generated scripts from the JSON file."""
-    if db is not None:
-        return list(db.generated_scripts.find({}, {"_id": 0}))
-
-    if not SCRIPTS_FILE.exists():
-        return []
-    try:
-        with open(SCRIPTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return []
-
-
-def save_generated_scripts(scripts: list[dict]) -> None:
-    """Persist generated scripts to the JSON file."""
-    if db is not None:
-        current_ids = [s["id"] for s in scripts if "id" in s]
-        db.generated_scripts.delete_many({"id": {"$nin": current_ids}})
-        for s in scripts:
-            if "id" in s:
-                s_copy = {k: v for k, v in s.items() if k != "_id"}
-                db.generated_scripts.update_one({"id": s["id"]}, {"$set": s_copy}, upsert=True)
-        return
-
-    SCRIPTS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(SCRIPTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(scripts, f, indent=2, ensure_ascii=False, default=str)
 
 
 # ── Covered-influencers store (per-client dedupe across repeat searches) ──
@@ -431,3 +341,68 @@ def mark_influencers_covered(client_id: str, influencers: list[dict]) -> None:
             json.dump(data, f, indent=2, ensure_ascii=False)
     except IOError as e:
         logger.error(f"Failed to save {COVERED_INFLUENCERS_FILE}: {e}")
+
+
+# ── Marketing skill run history (persisted results, client-scoped) ──────
+# Mirrors the covered-influencers store above: a flat local JSON file keyed
+# by client_id, dual-written to MongoDB when configured. Runs not tied to any
+# client use the "_global" sentinel bucket (same convention as VoiceSample's
+# "id": "voice_sample" singleton sentinel).
+
+def _load_skill_runs_file() -> dict:
+    if SKILL_RUNS_FILE.exists():
+        try:
+            with open(SKILL_RUNS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Could not read {SKILL_RUNS_FILE}: {e}")
+    return {}
+
+
+def load_skill_runs(client_id: str = "_global") -> list[dict]:
+    """This client's persisted marketing-skill run history, newest first."""
+    if db is not None:
+        try:
+            docs = list(
+                db.skill_runs.find({"client_id": client_id}, {"_id": 0})
+                .sort("created_at", -1)
+            )
+            if docs:
+                return docs
+        except Exception as e:
+            logger.error(f"Failed to load skill runs for '{client_id}' from MongoDB: {e}")
+
+    entries = _load_skill_runs_file().get(client_id, {})
+    return sorted(entries.values(), key=lambda e: e.get("created_at", ""), reverse=True)
+
+
+def save_skill_run(client_id: str, run: dict) -> None:
+    """Persist one completed marketing-skill run to both MongoDB and local
+    storage. `run` must include a unique 'id'."""
+    run_id = run.get("id")
+    if not run_id:
+        return
+    record = {**run, "client_id": client_id}
+
+    if db is not None:
+        try:
+            db.skill_runs.update_one(
+                {"client_id": client_id, "id": run_id},
+                {"$set": record},
+                upsert=True,
+            )
+        except Exception as e:
+            logger.error(f"Failed to save skill run for '{client_id}' to MongoDB: {e}")
+
+    try:
+        data = _load_skill_runs_file()
+        client_entries = data.get(client_id, {})
+        client_entries[run_id] = record
+        data[client_id] = client_entries
+        SKILL_RUNS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(SKILL_RUNS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except IOError as e:
+        logger.error(f"Failed to save {SKILL_RUNS_FILE}: {e}")

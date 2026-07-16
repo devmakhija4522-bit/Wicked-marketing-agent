@@ -1,1 +1,0 @@
-"""Trend sources package."""

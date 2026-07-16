@@ -41,14 +41,7 @@ export const api = {
   gmmResearch: (data) => apiRequest('/api/gmm/research', { method: 'POST', body: data }),
   gmmGenerate: (data) => apiRequest('/api/gmm/generate', { method: 'POST', body: data }),
   scrapeBrand: (data) => apiRequest('/api/gmm/scrape-brand', { method: 'POST', body: data }),
-  generateLinkedInDraft: (data) => apiRequest('/api/linkedin-draft', { method: 'POST', body: data }),
   searchInfluencers: (data) => apiRequest('/api/grest/influencer-search', { method: 'POST', body: data }),
-
-  // Vault
-  saveToVault: (data) => apiRequest('/api/vault/save', { method: 'POST', body: data }),
-  getVaultHistory: (clientId) =>
-    apiRequest(`/api/vault/history${clientId ? `?client_id=${clientId}` : ''}`, { method: 'GET' }),
-  deleteVaultScript: (scriptId) => apiRequest(`/scripts/${scriptId}`, { method: 'DELETE' }),
 
   // Full pipeline
   runFullPipeline: (topic, platform) =>
@@ -56,10 +49,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ topic, platform }),
     }),
-
-  // Trends
-  discoverTrends: (clientId = 'generic') =>
-    apiRequest(`/agents/trend-scout?client_id=${clientId}`, { method: 'POST' }),
 
   analyzeTrends: (trends, clientId = 'generic') =>
     apiRequest(`/api/analyze-trends?client_id=${clientId}`, {
@@ -87,10 +76,6 @@ export const api = {
     }),
 
 
-  // Stats
-  getStats: () =>
-    apiRequest('/api/stats', { method: 'GET' }),
-
   // Style
   analyzeStyle: (samples) =>
     apiRequest('/api/style-profile', {
@@ -111,12 +96,6 @@ export const api = {
   // LinkedIn Drafts
   generateLinkedInDrafts: (limit = 3) =>
     apiRequest(`/linkedin/generate?limit=${limit}`, { method: 'GET' }),
-  
-  getLinkedInStorageDrafts: (clientId) =>
-    apiRequest(`/api/linkedin/drafts?client_id=${clientId}`, { method: 'GET' }),
-
-  getLinkedInStorageDraft: (draftId, clientId) =>
-    apiRequest(`/api/linkedin/drafts/${draftId}?client_id=${clientId}`, { method: 'GET' }),
 
   // Jobs
   getJobStatus: (jobId) =>
@@ -148,47 +127,22 @@ export const api = {
       body: data,
     }),
 
-  // Creative Studio: Keyword Planner + pipeline state
-  runKeywordPlanner: (clientId) =>
-    apiRequest('/api/creative-studio/keyword-planner', {
-      method: 'POST',
-      body: { client_id: clientId },
-    }),
-
-  getCreativeStudioState: (clientId) =>
-    apiRequest(`/api/creative-studio/state?client_id=${clientId}`, { method: 'GET' }),
-
-  saveCreativeStudioState: (data) =>
-    apiRequest('/api/creative-studio/state', { method: 'PUT', body: data }),
-
-  runIdeaChat: (clientId, messages) =>
-    apiRequest('/api/creative-studio/idea-chat', {
-      method: 'POST',
-      body: { client_id: clientId, messages },
-    }),
-
-  runStructuralDesigner: (clientId, category) =>
-    apiRequest('/api/creative-studio/structural-designer', {
-      method: 'POST',
-      body: { client_id: clientId, category },
-    }),
-
-  runCreativeStudioScriptWriter: (clientId, category) =>
-    apiRequest('/api/creative-studio/script-writer', {
-      method: 'POST',
-      body: { client_id: clientId, category },
-    }),
-
   // Analytics
   getAnalyticsSummary: (platform = 'All') =>
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
 
-  // Creative Studio: Remix (independent alternate entry, paste a link)
-  runCreativeStudioRemix: (clientId, videoUrl, tone = '', category = '') =>
-    apiRequest('/api/creative-studio/remix', {
+  // Marketing Skills (16 playbooks, account-wide Dashboard)
+  getMarketingSkills: () =>
+    apiRequest('/api/marketing-skills', { method: 'GET' }),
+
+  runMarketingSkill: (skillId, brief, clientId) =>
+    apiRequest('/api/marketing-skills/run', {
       method: 'POST',
-      body: { client_id: clientId, video_url: videoUrl, tone, category },
+      body: { skill_id: skillId, brief, client_id: clientId || null },
     }),
+
+  getMarketingSkillHistory: (clientId) =>
+    apiRequest(`/api/marketing-skills/history${clientId ? `?client_id=${clientId}` : ''}`, { method: 'GET' }),
 };
 
 export default api;
