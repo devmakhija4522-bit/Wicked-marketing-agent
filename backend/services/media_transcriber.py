@@ -3,8 +3,8 @@ Media Transcriber
 Downloads a short-form video (Instagram Reel, TikTok, or YouTube Short/video)
 and produces a clean, speaker-friendly transcript using Gemini.
 
-Used by the Remix feature (see agents/remix_agent.py): paste a link, get a
-transcript, then rewrite it in the account's own Voice Sample.
+Used by the Voice Sample Reference Reel analyzer (see agents/reference_analyzer.py):
+paste a link, get a transcript, then analyze its narrative pattern.
 """
 
 import logging

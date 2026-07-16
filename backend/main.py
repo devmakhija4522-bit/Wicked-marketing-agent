@@ -1,6 +1,6 @@
 """
 WICKED Backend — FastAPI Server
-Main entry point with all API endpoints for the 5-agent marketing pipeline.
+Main entry point for the GMM/Grest content engine and Influencer Scout.
 """
 
 import logging
@@ -13,27 +13,14 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from pymongo import MongoClient
-import pymongo
 
 # Ensure the backend directory is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_generated_scripts, save_generated_scripts, load_voice_sample, save_voice_sample, load_creative_studio_state, save_creative_studio_state, db
+from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_voice_sample, save_voice_sample, load_skill_runs, save_skill_run
 from models import (
     ClientCreate,
-    BrandGuardianOutput,
-    ContentConcept,
-    ContentFormat,
-    ContentStrategistOutput,
-    GeneratedScript,
     HealthResponse,
-    InsightAnalystOutput,
-    PipelineInput,
-    PipelineRun,
-    PipelineStatus,
-    ScriptWriterOutput,
-    TrendScoutOutput,
     GMMResearchRequest,
     GMMResearchResponse,
     GMMGenerateRequest,
@@ -42,40 +29,19 @@ from models import (
     GMMBrandScrapeResponse,
     VoiceSample,
     VoiceSampleUpdate,
-    CreativeStudioRemixRequest,
-    CreativeStudioRemixOutput,
-    KeywordPlannerRequest,
-    KeywordPlannerOutput,
-    StructuralDesignerRequest,
-    StructuralDesignerOutput,
-    StructureOption,
-    KeywordPhrase,
-    CreativeStudioScriptWriterRequest,
-    CreativeStudioScriptWriterOutput,
-    CreativeStudioState,
     ReferenceProfileAnalyzeRequest,
     ReferenceProfileApproveRequest,
-    IdeaChatRequest,
+    MarketingSkillRunRequest,
 )
-from agents.trend_scout import TrendScoutAgent
 from agents.gmm_news_scout import GMMNewsScoutAgent
 from agents.gmm_hook_scout import GMMHookScoutAgent
 from agents.gmm_omni_writer import GMMOmniWriterAgent
 from agents.gmm_brand_scraper import GMMBrandScraperAgent
-from agents.insight_analyst import InsightAnalystAgent
-from agents.content_strategist import ContentStrategistAgent
-from agents.script_writer import ScriptWriterAgent
-from agents.brand_guardian import BrandGuardianAgent
-from agents.linkedin_writer import LinkedInWriterAgent, LinkedInDraftOutput
 from agents.instagram_script_writer import InstagramScriptWriterAgent
-from agents.keyword_planner import KeywordPlannerAgent
-from agents.structural_designer import StructuralDesignerAgent
-from agents.remix_agent import RemixAgent
 from agents.reference_analyzer import ReferenceAnalyzerAgent
-from agents.idea_chat import IdeaChatAgent
+from agents.marketing_skill_agent import MarketingSkillAgent
 from services.voice_categories import categories_for_api
-from pipeline import execute_pipeline
-from autonomous import autonomous_loop, get_autonomous_config, get_recent_cycles, load_covered_topics, run_cycle
+from services.marketing_skills import SKILLS, skills_for_api
 from services.news_service import NewsService
 from services.analytics_service import AnalyticsService
 from services.format_service import FormatService
@@ -91,43 +57,11 @@ logger = logging.getLogger("wicked.server")
 
 # ── In-Memory Storage & DB ────────────────────────────────────
 
-pipeline_runs: dict[str, PipelineRun] = {}
 background_jobs: dict[str, dict] = {}
 
 # (MongoDB initialized in config.py)
 
 # ── App Lifespan ──────────────────────────────────────────────
-
-def run_daily_linkedin_draft():
-    """Job to generate LinkedIn draft and save to file daily at 12 PM."""
-    logger.info("Running scheduled daily Grest LinkedIn draft generation...")
-    try:
-        from agents.grest_linkedin_agent import GrestLinkedInAgent
-        agent = GrestLinkedInAgent(client_id="grest")
-        result = agent.run()
-        
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        draft_id = f"OUTPUT- {date_str}"
-        
-        if db is not None:
-            # Save to MongoDB
-            collection = db["linkedin_drafts"]
-            collection.update_one(
-                {"_id": draft_id},
-                {"$set": {"content": result, "created_at": datetime.utcnow()}},
-                upsert=True
-            )
-            logger.info(f"Successfully saved daily draft to MongoDB: {draft_id}")
-        else:
-            # Fallback to local files if no DB configured
-            output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
-            output_dir.mkdir(parents=True, exist_ok=True)
-            filepath = output_dir / f"{draft_id}.md"
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.write(result)
-            logger.info(f"Successfully saved daily draft to local file: {filepath}")
-    except Exception as e:
-        logger.error(f"Failed to generate daily LinkedIn draft: {e}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -145,43 +79,9 @@ async def lifespan(app: FastAPI):
         logger.warning("⚠️  GEMINI_API_KEY not set! The system will not work without it.")
         logger.warning("⚠️  Copy .env.example to .env and set your Gemini API key.")
 
-    # Start the APScheduler
-    try:
-        from apscheduler.schedulers.background import BackgroundScheduler
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(run_daily_linkedin_draft, 'cron', hour=12, minute=0)
-        scheduler.start()
-        logger.info("✅ APScheduler started: Grest LinkedIn job scheduled for 12:00 PM daily.")
-    except ImportError:
-        logger.warning("⚠️  APScheduler not installed. Daily tasks will not run. Run 'pip install apscheduler'.")
-        scheduler = None
-
-    # Autonomous loop — normally runs in the dedicated worker (python worker.py).
-    # Set AUTONOMOUS_MODE=true AND AUTONOMOUS_IN_WEB=true to run it inside this
-    # web process instead (single-service deployments / local dev).
-    autonomous_stop = None
-    auto_cfg = get_autonomous_config()
-    if auto_cfg["enabled"] and auto_cfg["run_in_web"]:
-        import threading
-        autonomous_stop = threading.Event()
-        threading.Thread(
-            target=autonomous_loop,
-            args=(autonomous_stop,),
-            daemon=True,
-            name="wicked-autonomous",
-        ).start()
-        logger.info("🤖 Autonomous loop started inside web process (AUTONOMOUS_IN_WEB=true).")
-    elif auto_cfg["enabled"]:
-        logger.info("🤖 AUTONOMOUS_MODE=true — expecting the dedicated worker (python worker.py) to run the loop.")
-
     yield
 
     logger.info("WICKED Backend shutting down.")
-    if autonomous_stop:
-        autonomous_stop.set()
-    if scheduler:
-        scheduler.shutdown()
-
 
 
 # ── FastAPI App ───────────────────────────────────────────────
@@ -189,10 +89,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="WICKED — AI Marketing Agent",
     description=(
-        "Backend API for the WICKED marketing system. A 5-agent AI pipeline that "
-        "discovers trends, analyzes insights, creates content strategies, "
-        "writes Hinglish scripts, and reviews brand alignment for Instagram "
-        "Reels and YouTube Shorts."
+        "Backend API for the WICKED marketing system: the GMM/Grest omni-channel "
+        "content engine and Influencer Scout."
     ),
     version="1.0.0",
     lifespan=lifespan,
@@ -208,13 +106,6 @@ app.add_middleware(
 )
 
 
-# ── Helper: Run Pipeline ─────────────────────────────────────
-# The 5-agent orchestration lives in pipeline.py (shared with autonomous.py).
-# _execute_pipeline is kept as an alias so existing call sites don't change.
-
-_execute_pipeline = execute_pipeline
-
-
 # ══════════════════════════════════════════════════════════════
 #  API ENDPOINTS
 # ══════════════════════════════════════════════════════════════
@@ -224,250 +115,24 @@ _execute_pipeline = execute_pipeline
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 async def health_check():
     """Check system health and available integrations."""
-    sources = ["google_trends"]  # always available
-    if settings.has_youtube:
-        sources.append("youtube")
-    if settings.has_reddit:
-        sources.append("reddit")
-    if settings.has_instagram:
-        sources.append("instagram")
-
     return HealthResponse(
         status="ok",
         version="1.0.0",
         gemini_configured=bool(settings.gemini_api_key),
-        available_trend_sources=sources,
     )
 
 @app.get("/api/stats", tags=["System"])
 async def get_dashboard_stats():
-    """Get dashboard statistics based on actual system data."""
-    scripts = load_generated_scripts()
-    total_scripts = len(scripts)
-    
-    total_score = 0
-    scored_count = 0
-    for s in scripts:
-        if "guardian_score" in s:
-            total_score += s["guardian_score"]
-            scored_count += 1
-            
-    avg_score = round(total_score / scored_count) if scored_count > 0 else 85
-    
-    active_pipelines = sum(1 for run in pipeline_runs.values() if run.status == PipelineStatus.RUNNING)
-    trends_scanned = 210 + (total_scripts * 5)
-    
+    """Get dashboard statistics. Placeholder zeros — the original pipeline/
+    trend-scanning/vault features that used to back these numbers have been
+    removed."""
     return {
-        "totalScripts": total_scripts,
-        "trendsScanned": trends_scanned,
-        "avgBrandScore": avg_score,
-        "activePipelines": active_pipelines
+        "totalScripts": 0,
+        "trendsScanned": 0,
+        "avgBrandScore": 0,
+        "activePipelines": 0,
     }
 
-
-# ── Full Pipeline ─────────────────────────────────────────────
-
-@app.post("/pipeline/run", tags=["Pipeline"])
-async def run_pipeline(input_data: PipelineInput, background_tasks: BackgroundTasks):
-    """
-    Kick off the full 5-agent pipeline.
-    Returns immediately with a run ID. Poll /pipeline/{run_id} for results.
-    """
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured. Set it in .env.")
-
-    run = PipelineRun(input=input_data)
-    pipeline_runs[run.id] = run
-
-    background_tasks.add_task(_execute_pipeline, run)
-
-    return {
-        "run_id": run.id,
-        "status": run.status.value,
-        "message": "Pipeline started! Poll /pipeline/{run_id} for results.",
-    }
-
-
-@app.post("/pipeline/run-sync", response_model=PipelineRun, tags=["Pipeline"])
-async def run_pipeline_sync(input_data: PipelineInput):
-    """
-    Run the full 5-agent pipeline synchronously.
-    Blocks until complete — use for testing or when you want immediate results.
-    """
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured. Set it in .env.")
-
-    run = PipelineRun(input=input_data)
-    pipeline_runs[run.id] = run
-    _execute_pipeline(run)
-    return run
-
-
-@app.get("/pipeline/{run_id}", response_model=PipelineRun, tags=["Pipeline"])
-async def get_pipeline_status(run_id: str):
-    """Get the current status and results of a pipeline run."""
-    if run_id not in pipeline_runs:
-        raise HTTPException(status_code=404, detail=f"Pipeline run '{run_id}' not found.")
-    return pipeline_runs[run_id]
-
-
-@app.get("/pipeline/runs/list", tags=["Pipeline"])
-async def list_pipeline_runs():
-    """List all pipeline runs with their statuses."""
-    return [
-        {
-            "id": run.id,
-            "status": run.status.value,
-            "topic": run.input.topic,
-            "started_at": run.started_at.isoformat(),
-            "completed_at": run.completed_at.isoformat() if run.completed_at else None,
-        }
-        for run in pipeline_runs.values()
-    ]
-
-
-# ── Autonomous Mode ───────────────────────────────────────────
-
-@app.get("/autonomous/status", tags=["Autonomous"])
-async def autonomous_status():
-    """Inspect the autonomous loop: config, covered-topics count, recent cycle history."""
-    cfg = get_autonomous_config()
-    return {
-        "enabled": cfg["enabled"],
-        "runs_in_web_process": cfg["run_in_web"],
-        "interval_minutes": cfg["interval_minutes"],
-        "client_id": cfg["client_id"],
-        "topic": cfg["topic"],
-        "keywords": cfg["keywords"],
-        "covered_topics_count": len(load_covered_topics()),
-        "recent_cycles": get_recent_cycles(limit=20),
-    }
-
-
-@app.post("/autonomous/trigger", tags=["Autonomous"])
-async def autonomous_trigger(background_tasks: BackgroundTasks):
-    """
-    Manually force ONE autonomous cycle right now (dedupe check included).
-    Works even when AUTONOMOUS_MODE=false. Check /autonomous/status for the outcome.
-    """
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured. Set it in .env.")
-    background_tasks.add_task(run_cycle)
-    return {"message": "Autonomous cycle triggered. Poll /autonomous/status for the result."}
-
-
-# ── Individual Agents ─────────────────────────────────────────
-
-@app.post("/agents/trend-scout", response_model=TrendScoutOutput, tags=["Agents"])
-async def run_trend_scout(
-    topic: str = "",
-    keywords: Optional[str] = None,
-    client_id: str = "generic",
-):
-    """Run the Trend Scout agent independently."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    kw_list = [k.strip() for k in keywords.split(",")] if keywords else []
-    agent = TrendScoutAgent(client_id=client_id)
-    return agent.run(topic=topic, keywords=kw_list)
-
-
-@app.post("/agents/insight-analyst", response_model=InsightAnalystOutput, tags=["Agents"])
-async def run_insight_analyst(trend_output: TrendScoutOutput):
-    """Run the Insight Analyst on Trend Scout output."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    agent = InsightAnalystAgent()
-    return agent.run(trend_output)
-
-
-@app.post("/agents/content-strategist", response_model=ContentStrategistOutput, tags=["Agents"])
-async def run_content_strategist(
-    insight_output: InsightAnalystOutput,
-    content_format: ContentFormat = ContentFormat.INSTAGRAM_REEL,
-    num_concepts: int = 3,
-):
-    """Run the Content Strategist on Insight Analyst output."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    agent = ContentStrategistAgent()
-    return agent.run(insight_output, content_format, num_concepts)
-
-
-from models import ContentConcept
-
-@app.post("/agents/script-writer", response_model=ScriptWriterOutput, tags=["Agents"])
-async def run_script_writer(
-    concept: ContentConcept,
-    style_reference: str = "",
-):
-    """Run the Script Writer on a content concept."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    agent = ScriptWriterAgent()
-    return agent.run(concept=concept, style_reference=style_reference)
-
-
-@app.post("/agents/brand-guardian", response_model=BrandGuardianOutput, tags=["Agents"])
-async def run_brand_guardian(script_output: ScriptWriterOutput):
-    """Run the Brand Guardian on Script Writer output."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    agent = BrandGuardianAgent()
-    return agent.run(script_output)
-
-
-# ── Scripts Storage ───────────────────────────────────────────
-
-@app.get("/scripts", tags=["Scripts"])
-async def list_scripts():
-    """List all persisted generated scripts."""
-    return load_generated_scripts()
-
-
-@app.get("/scripts/{script_id}", tags=["Scripts"])
-async def get_script(script_id: str):
-    """Get a specific persisted script by ID."""
-    scripts = load_generated_scripts()
-    for s in scripts:
-        if s.get("id") == script_id:
-            return s
-    raise HTTPException(status_code=404, detail=f"Script '{script_id}' not found.")
-
-
-@app.delete("/scripts/{script_id}", tags=["Scripts"])
-async def delete_script(script_id: str):
-    """Delete a persisted script."""
-    scripts = load_generated_scripts()
-    filtered = [s for s in scripts if s.get("id") != script_id]
-    if len(filtered) == len(scripts):
-        raise HTTPException(status_code=404, detail=f"Script '{script_id}' not found.")
-    save_generated_scripts(filtered)
-    return {"message": f"Script '{script_id}' deleted.", "remaining": len(filtered)}
-
-
-# ── LinkedIn Drafts ───────────────────────────────────────────
-
-@app.get("/linkedin/generate", tags=["LinkedIn"])
-async def generate_linkedin_drafts(limit: int = 3):
-    """Fetch Apple news and generate LinkedIn drafts."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    news_items = NewsService.fetch_apple_news(limit=limit)
-    agent = LinkedInWriterAgent()
-    
-    drafts = []
-    for news in news_items:
-        draft = agent.run(news)
-        drafts.append(draft)
-        
-    return drafts
 
 # ── Instagram Scripts ─────────────────────────────────────────
 
@@ -489,116 +154,8 @@ async def generate_instagram_script():
     # 3. Generate script
     agent = InstagramScriptWriterAgent()
     script = agent.run(news, format_item)
-    
+
     return script
-
-# ── Creative Studio: Keyword Planner + pipeline state ─────────
-
-@app.post("/api/creative-studio/keyword-planner", response_model=KeywordPlannerOutput, tags=["Creative Studio"])
-async def run_keyword_planner(request: KeywordPlannerRequest):
-    """Auto-fetch what's currently trending (no manual topic) and return
-    7-10 video-style keyword phrases."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-    agent = KeywordPlannerAgent(client_id=request.client_id)
-    return agent.run()
-
-
-@app.get("/api/creative-studio/state", response_model=CreativeStudioState, tags=["Creative Studio"])
-async def get_creative_studio_state(client_id: str):
-    """Fetch this client's carried-forward Creative Studio selections."""
-    return load_creative_studio_state(client_id)
-
-
-@app.put("/api/creative-studio/state", response_model=CreativeStudioState, tags=["Creative Studio"])
-async def update_creative_studio_state(state: CreativeStudioState):
-    """Persist this client's carried-forward Creative Studio selections."""
-    record = state.model_dump(mode="json")
-    save_creative_studio_state(state.client_id, record)
-    return load_creative_studio_state(state.client_id)
-
-
-@app.post("/api/creative-studio/structural-designer", response_model=StructuralDesignerOutput, tags=["Creative Studio"])
-async def run_structural_designer(request: StructuralDesignerRequest):
-    """Given a client, design script structures from the keywords already
-    carried forward from Keyword Planner."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    state = load_creative_studio_state(request.client_id)
-    raw_keywords = state.get("selected_keywords", [])
-    if not raw_keywords:
-        raise HTTPException(status_code=400, detail="No keywords carried forward from Keyword Planner yet.")
-
-    keywords = [KeywordPhrase(**k) for k in raw_keywords]
-    agent = StructuralDesignerAgent(client_id=request.client_id)
-    return agent.run(keywords, category=request.category)
-
-
-@app.post("/api/creative-studio/script-writer", response_model=CreativeStudioScriptWriterOutput, tags=["Creative Studio"])
-async def run_creative_studio_script_writer(request: CreativeStudioScriptWriterRequest):
-    """Given a client, write full scripts from the structures already
-    carried forward from Structural Designer, applying script_writing_voice
-    strictly."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-
-    state = load_creative_studio_state(request.client_id)
-    raw_structures = state.get("selected_structures", [])
-    if not raw_structures:
-        raise HTTPException(status_code=400, detail="No structures carried forward from Structural Designer yet.")
-
-    structures = [StructureOption(**s) for s in raw_structures]
-    agent = ScriptWriterAgent(client_id=request.client_id)
-
-    scripts = []
-    for structure in structures:
-        concept = ContentConcept(
-            title=structure.source_keyword or structure.hook_direction[:60],
-            hook=structure.hook_direction,
-            concept_summary=" -> ".join(structure.beat_outline),
-            storytelling_framework="Structural Designer output",
-            trend_reference=structure.source_keyword,
-            format=ContentFormat.INSTAGRAM_REEL,
-        )
-        result = agent.run(concept, structure=structure, category=structure.category or request.category)
-        scripts.append(result.script)
-
-    return CreativeStudioScriptWriterOutput(scripts=scripts)
-
-
-@app.post("/api/creative-studio/idea-chat", tags=["Creative Studio"])
-async def run_idea_chat(request: IdeaChatRequest, background_tasks: BackgroundTasks):
-    """One turn of the AI idea-chat — the conversational alternative to
-    Keyword Planner's 'Fetch Trending Keywords' button. Converses, and
-    once ready, returns a distilled topic the frontend can move to
-    Structural Designer, exactly like a fetched keyword — does not
-    generate a structure/script itself. Returns a job_id — poll
-    GET /api/jobs/{job_id}."""
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-    if not request.messages:
-        raise HTTPException(status_code=400, detail="At least one message is required.")
-
-    job_id = uuid.uuid4().hex[:12]
-    background_jobs[job_id] = {"status": "pending"}
-
-    def _do_chat():
-        try:
-            background_jobs[job_id]["status"] = "running"
-            agent = IdeaChatAgent(client_id=request.client_id)
-            result = agent.chat(request.messages)
-            background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = result
-        except Exception as e:
-            import traceback
-            with open("error.log", "a") as f:
-                f.write(traceback.format_exc() + "\n")
-            background_jobs[job_id]["status"] = "failed"
-            background_jobs[job_id]["error"] = str(e)
-
-    background_tasks.add_task(_do_chat)
-    return {"job_id": job_id}
 
 # ── Voice Sample (account-wide) ──────────────────────────────
 
@@ -693,36 +250,48 @@ async def approve_reference_profile(request: ReferenceProfileApproveRequest):
     save_voice_sample(record)
     return record
 
-# ── Creative Studio: Remix (independent alternate entry, paste a link) ──
 
-@app.post("/api/creative-studio/remix", tags=["Creative Studio"])
-async def run_creative_studio_remix(request: CreativeStudioRemixRequest, background_tasks: BackgroundTasks):
-    """Kick off a Remix job: download/transcribe the pasted video link, then
-    write a full script from it via the same ScriptWriterAgent Content
-    Generator uses (same Voice Sample application, same client brand
-    context). Poll /api/jobs/{job_id}."""
+# ── Marketing Skills (16 playbooks, account-wide Dashboard) ───
+
+@app.get("/api/marketing-skills", tags=["Marketing Skills"])
+async def get_marketing_skills():
+    """The 16 available skills (id/category/label/description/input_hint) —
+    same source of truth the runner agent reads its playbook text from."""
+    return skills_for_api()
+
+
+@app.post("/api/marketing-skills/run", tags=["Marketing Skills"])
+async def run_marketing_skill(request: MarketingSkillRunRequest, background_tasks: BackgroundTasks):
+    """Run one marketing skill against a free-text brief, optionally scoped
+    to a client for brand context. Returns a job_id — poll GET /api/jobs/{job_id}.
+    The result is also persisted to skill-run history regardless of whether
+    anyone is still polling."""
+    if request.skill_id not in SKILLS:
+        raise HTTPException(status_code=404, detail=f"Unknown skill '{request.skill_id}'.")
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-    if not request.video_url.strip():
-        raise HTTPException(status_code=400, detail="video_url is required.")
+    if not request.brief.strip():
+        raise HTTPException(status_code=400, detail="A brief is required.")
 
     job_id = uuid.uuid4().hex[:12]
     background_jobs[job_id] = {"status": "pending"}
 
-    def _do_remix():
+    def _do_skill_run():
         try:
             background_jobs[job_id]["status"] = "running"
-            agent = RemixAgent(client_id=request.client_id)
-            result = agent.run(video_url=request.video_url, tone=request.tone, category=request.category)
-            output = CreativeStudioRemixOutput(
-                script=result.script,
-                structure=result.structure,
-                transcript=result.transcript,
-                platform=result.platform,
-                summary=result.summary,
-            )
+            agent = MarketingSkillAgent(client_id=request.client_id or "generic")
+            result = agent.run(request.skill_id, request.brief)
+
             background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = output.model_dump(mode="json")
+            background_jobs[job_id]["result"] = {"markdown": result}
+
+            save_skill_run(request.client_id or "_global", {
+                "id": job_id,
+                "skill_id": request.skill_id,
+                "brief": request.brief,
+                "markdown": result,
+                "created_at": datetime.utcnow().isoformat(),
+            })
         except Exception as e:
             import traceback
             with open("error.log", "a") as f:
@@ -730,8 +299,15 @@ async def run_creative_studio_remix(request: CreativeStudioRemixRequest, backgro
             background_jobs[job_id]["status"] = "failed"
             background_jobs[job_id]["error"] = str(e)
 
-    background_tasks.add_task(_do_remix)
+    background_tasks.add_task(_do_skill_run)
     return {"job_id": job_id}
+
+
+@app.get("/api/marketing-skills/history", tags=["Marketing Skills"])
+async def get_marketing_skills_history(client_id: Optional[str] = None):
+    """Past marketing-skill runs, newest first. Omit client_id for
+    account-wide (non-client-scoped) runs."""
+    return load_skill_runs(client_id or "_global")
 
 
 # ── Analytics ─────────────────────────────────────────────────
@@ -763,11 +339,11 @@ async def update_client(client_id: str, client_in: dict):
     client_data = load_client_profile(client_id)
     if not client_data or client_data.get("brand_name") == "Unknown Client":
         raise HTTPException(status_code=404, detail="Client not found")
-    
+
     # Merge the new data
     client_data.update(client_in)
     client_data["id"] = client_id # Ensure ID doesn't change
-    
+
     save_client_profile(client_data)
     return client_data
 
@@ -788,41 +364,6 @@ async def delete_client(client_id: str):
 async def get_client(client_id: str):
     """Get a specific client profile."""
     return load_client_profile(client_id)
-
-# ── Vault Endpoints ─────────────────────────────────────────────
-
-@app.get("/api/vault/history", tags=["Vault"])
-async def get_vault_history(client_id: Optional[str] = None):
-    """Get saved scripts, scoped to one client when client_id is given."""
-    scripts = load_generated_scripts()
-    if client_id:
-        scripts = [s for s in scripts if s.get("client_id") == client_id]
-    return {"history": scripts}
-
-@app.post("/api/vault/save", tags=["Vault"])
-async def save_to_vault(request: dict):
-    """Save a generated script to the vault, scoped to a client."""
-    try:
-        scripts = load_generated_scripts()
-        # Ensure it has an ID and timestamp
-        import uuid
-        from datetime import datetime
-        script_entry = {
-            "id": uuid.uuid4().hex[:12],
-            "client_id": request.get("client_id", ""),
-            "title": request.get("title", "GMM Generated Campaign"),
-            "format": request.get("format", "Omni-Channel"),
-            "content": request.get("content", {}),
-            "created_at": datetime.utcnow().isoformat()
-        }
-        scripts.append(script_entry)
-        save_generated_scripts(scripts)
-        return {"message": "Saved to vault", "script": script_entry}
-    except Exception as e:
-        import traceback
-        with open("error.log", "a") as f:
-            f.write(traceback.format_exc() + "\n")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # ── GMM Endpoints ──────────────────────────────────────────────
 
@@ -852,16 +393,14 @@ async def gmm_research(request: GMMResearchRequest, background_tasks: Background
     background_jobs[job_id] = {"status": "pending"}
 
     def _do_research():
-        import asyncio
         try:
             background_jobs[job_id]["status"] = "running"
             news_agent = GMMNewsScoutAgent(client_id=request.client_id)
             hook_agent = GMMHookScoutAgent(client_id=request.client_id)
-            
-            # Create a new event loop for the background thread if needed, or just use sync
+
             news_output = news_agent.run(request.product_focus)
             hook_output = hook_agent.run(request.product_focus, request.viral_url)
-            
+
             background_jobs[job_id]["status"] = "completed"
             background_jobs[job_id]["result"] = {"news": news_output, "hooks": hook_output}
         except Exception as e:
@@ -918,52 +457,7 @@ async def get_content_templates():
     return load_content_templates()
 
 
-# ── Import for script-writer endpoint ─────────────────────────
-from models import ContentConcept, LinkedInDraftRequest
-from agents.linkedin_agent import LinkedInAgent
-
-@app.post("/api/linkedin-draft", response_model=dict, tags=["LinkedIn"])
-async def linkedin_draft(req: LinkedInDraftRequest, background_tasks: BackgroundTasks):
-    """Run the dynamic LinkedIn news scanning and drafting agent."""
-    job_id = uuid.uuid4().hex[:12]
-    background_jobs[job_id] = {"status": "pending"}
-
-    def _do_draft():
-        try:
-            background_jobs[job_id]["status"] = "running"
-            agent = LinkedInAgent(client_id=req.client_id, references=req.references) 
-            result = agent.run()
-            
-            date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            draft_id = f"OUTPUT- {date_str}"
-            
-            if db is not None:
-                # Save to MongoDB
-                collection = db["linkedin_drafts"]
-                collection.update_one(
-                    {"_id": draft_id},
-                    {"$set": {"content": result, "created_at": datetime.utcnow(), "client_id": req.client_id}},
-                    upsert=True
-                )
-            else:
-                # Fallback to local files
-                output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts" / req.client_id
-                output_dir.mkdir(parents=True, exist_ok=True)
-                filepath = output_dir / f"{draft_id}.md"
-                with open(filepath, "w", encoding="utf-8") as f:
-                    f.write(result)
-
-            background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = {"draft": result}
-        except Exception as e:
-            import traceback
-            with open("error.log", "a") as f:
-                f.write(traceback.format_exc() + "\n")
-            background_jobs[job_id]["status"] = "failed"
-            background_jobs[job_id]["error"] = str(e)
-
-    background_tasks.add_task(_do_draft)
-    return {"job_id": job_id}
+# ── Grest: Influencer Scout ────────────────────────────────────
 
 from pydantic import BaseModel
 class InfluencerSearchRequest(BaseModel):
@@ -990,7 +484,7 @@ async def grest_influencer_search(request: InfluencerSearchRequest, background_t
                 "followerCount": request.followerCount,
                 "city": request.city
             })
-            
+
             background_jobs[job_id]["status"] = "completed"
             background_jobs[job_id]["result"] = {"draft": result}
         except Exception as e:
@@ -1003,49 +497,6 @@ async def grest_influencer_search(request: InfluencerSearchRequest, background_t
     background_tasks.add_task(_do_scout)
     return {"job_id": job_id}
 
-
-@app.get("/api/linkedin/drafts", tags=["LinkedIn Storage"])
-async def list_linkedin_drafts(client_id: str = None):
-    drafts = []
-    
-    if db is not None:
-        collection = db["linkedin_drafts"]
-        query = {"client_id": client_id} if client_id else {}
-        for doc in collection.find(query, {"_id": 1}).sort("_id", pymongo.DESCENDING):
-            drafts.append(doc["_id"])
-    else:
-        output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
-        if client_id:
-            output_dir = output_dir / client_id
-        if output_dir.exists():
-            for file in output_dir.glob("OUTPUT- *.md"):
-                drafts.append(file.name.replace(".md", ""))
-        drafts.sort(reverse=True)
-        
-    return {"drafts": drafts}
-
-
-@app.get("/api/linkedin/drafts/{draft_id}", tags=["LinkedIn Storage"])
-async def get_linkedin_draft(draft_id: str, client_id: str = None):
-    if db is not None:
-        collection = db["linkedin_drafts"]
-        query = {"_id": draft_id}
-        if client_id:
-            query["client_id"] = client_id
-        doc = collection.find_one(query)
-        if not doc:
-            raise HTTPException(status_code=404, detail="Draft not found")
-        return {"content": doc.get("content", "")}
-    else:
-        output_dir = Path(__file__).resolve().parent / "data" / "linkedin_drafts"
-        if client_id:
-            output_dir = output_dir / client_id
-        filepath = output_dir / f"{draft_id}.md"
-        if not filepath.exists():
-            raise HTTPException(status_code=404, detail="Draft not found")
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-        return {"content": content}
 
 @app.get("/api/jobs/{job_id}", tags=["Jobs"])
 async def get_job_status(job_id: str):

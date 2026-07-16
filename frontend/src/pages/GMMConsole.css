@@ -4,6 +4,10 @@
   margin: 0 auto;
 }
 
+.gmm-skills-section {
+  margin-top: 1rem;
+}
+
 .gmm-header {
   display: flex;
   justify-content: space-between;
