@@ -1,8 +1,8 @@
 .skill-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(6, 6, 18, 0.75);
-  backdrop-filter: blur(4px);
+  background: rgba(6, 6, 18, 0.85);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,13 +12,11 @@
 
 .skill-modal {
   width: 100%;
-  max-width: 720px;
+  max-width: 900px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--bg-deep);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -101,10 +99,15 @@
   color: var(--text-secondary);
 }
 
-.skill-modal-result table {
+.skill-modal-table-wrap {
   width: 100%;
+  overflow-x: auto;
+}
+
+.skill-modal-result table {
   border-collapse: collapse;
   font-size: var(--text-xs);
+  white-space: nowrap;
 }
 
 .skill-modal-result th,
@@ -117,6 +120,10 @@
 .skill-modal-result th {
   background: var(--bg-glass-light);
   color: var(--text-primary);
+}
+
+.skill-modal-result tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .skill-modal-result code {
