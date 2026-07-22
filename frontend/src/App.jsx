@@ -4,12 +4,9 @@ import Sidebar from './components/Sidebar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Clients from './pages/Clients.jsx';
 import ContentLab from './pages/ContentLab.jsx';
-import GMMConsole from './pages/GMMConsole.jsx';
 import StyleProfile from './pages/StyleProfile.jsx';
 import Settings from './pages/Settings.jsx';
 import Analytics from './pages/Analytics.jsx';
-import InfluencerScout from './pages/InfluencerScout.jsx';
-import SkillCategoryPage from './pages/SkillCategoryPage.jsx';
 
 export default function App() {
   return (
@@ -20,9 +17,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/clients" element={<Clients />} />
-            <Route path="/gmm/:clientId" element={<GMMConsole />} />
-          <Route path="/influencers" element={<InfluencerScout />} />
-          <Route path="/skills/:category" element={<SkillCategoryPage />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/lab" element={<ContentLab />} />
           <Route path="/style" element={<StyleProfile />} />

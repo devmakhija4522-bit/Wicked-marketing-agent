@@ -1,10 +1,12 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
 
 async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const config = {
     headers: {
       'Content-Type': 'application/json',
+      ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
       ...options.headers,
     },
     ...options,
@@ -36,12 +38,6 @@ export const api = {
   updateClient: (id, data) => apiRequest(`/clients/${id}`, { method: 'PUT', body: data }),
   deleteClient: (id) => apiRequest(`/clients/${id}`, { method: 'DELETE' }),
   getClient: (id) => apiRequest(`/clients/${id}`, { method: 'GET' }),
-
-  // GMM Console
-  gmmResearch: (data) => apiRequest('/api/gmm/research', { method: 'POST', body: data }),
-  gmmGenerate: (data) => apiRequest('/api/gmm/generate', { method: 'POST', body: data }),
-  scrapeBrand: (data) => apiRequest('/api/gmm/scrape-brand', { method: 'POST', body: data }),
-  searchInfluencers: (data) => apiRequest('/api/grest/influencer-search', { method: 'POST', body: data }),
 
   // Full pipeline
   runFullPipeline: (topic, platform) =>
@@ -130,19 +126,6 @@ export const api = {
   // Analytics
   getAnalyticsSummary: (platform = 'All') =>
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
-
-  // Marketing Skills (16 playbooks, account-wide Dashboard)
-  getMarketingSkills: () =>
-    apiRequest('/api/marketing-skills', { method: 'GET' }),
-
-  runMarketingSkill: (skillId, brief, clientId) =>
-    apiRequest('/api/marketing-skills/run', {
-      method: 'POST',
-      body: { skill_id: skillId, brief, client_id: clientId || null },
-    }),
-
-  getMarketingSkillHistory: (clientId) =>
-    apiRequest(`/api/marketing-skills/history${clientId ? `?client_id=${clientId}` : ''}`, { method: 'GET' }),
 };
 
 export default api;

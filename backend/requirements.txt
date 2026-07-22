@@ -5,11 +5,6 @@ pydantic-settings==2.5.2
 google-genai==1.14.0
 python-dotenv==1.0.1
 httpx>=0.28.1
-praw==7.8.1
-pytrends==4.9.2
-aiofiles==24.1.0
-python-multipart==0.0.12
-feedparser==6.0.11
-apscheduler==3.10.4
 pymongo==4.10.1
 yt-dlp>=2024.8.6
+slowapi==0.1.10
