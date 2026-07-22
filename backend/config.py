@@ -21,9 +21,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CLIENTS_DIR = DATA_DIR / "clients"
-COVERED_INFLUENCERS_FILE = DATA_DIR / "covered_influencers.json"
 VOICE_SAMPLE_FILE = DATA_DIR / "voice_sample.json"
-SKILL_RUNS_FILE = DATA_DIR / "skill_runs.json"
 
 
 class Settings(BaseSettings):
@@ -45,6 +43,13 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = True
+
+    # --- Security ---
+    # Empty api_key = auth disabled (same optional-enhancement pattern as
+    # has_nvidia/has_youtube below) — ships inert until deliberately set on
+    # both the backend (API_KEY) and frontend (VITE_API_KEY) deployments.
+    api_key: str = ""
+    frontend_origins: str = "http://localhost:5173,https://wicked-marketing-agent-4xst.vercel.app"
 
     # --- LLM ---
     gemini_model: str = "gemini-2.5-flash"
@@ -74,6 +79,10 @@ class Settings(BaseSettings):
     @property
     def has_instagram(self) -> bool:
         return bool(self.rapidapi_key)
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.frontend_origins.split(",") if origin.strip()]
 
 
 settings = Settings()
@@ -255,154 +264,3 @@ def load_content_templates() -> dict:
     templates_path = DATA_DIR / "content_templates.json"
     with open(templates_path, "r", encoding="utf-8") as f:
         return json.load(f)
-
-
-# ── Covered-influencers store (per-client dedupe across repeat searches) ──
-# Mirrors autonomous.py's covered-topics pattern: without this, each
-# influencer search is a stateless call with the same criteria, so Gemini's
-# search grounding keeps surfacing the same top-ranked names (or fabricates
-# once it runs out of "different" ideas). Tracking what's already been
-# suggested lets us tell the model explicitly not to repeat it.
-
-def _normalize_influencer_key(identifier: str) -> str:
-    return " ".join(identifier.lower().split())
-
-
-def _load_covered_influencers_file() -> dict:
-    if COVERED_INFLUENCERS_FILE.exists():
-        try:
-            with open(COVERED_INFLUENCERS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if isinstance(data, dict):
-                return data
-        except (json.JSONDecodeError, IOError) as e:
-            logger.error(f"Could not read {COVERED_INFLUENCERS_FILE}: {e}")
-    return {}
-
-
-def load_covered_influencers(client_id: str) -> list[dict]:
-    """Influencers already suggested to this client, most recently suggested
-    first. Each entry has key/name/handle/url/covered_at."""
-    if db is not None:
-        try:
-            docs = list(
-                db.covered_influencers.find({"client_id": client_id}, {"_id": 0})
-                .sort("covered_at", -1)
-            )
-            if docs:
-                return docs
-        except Exception as e:
-            logger.error(f"Failed to load covered influencers for '{client_id}' from MongoDB: {e}")
-
-    entries = _load_covered_influencers_file().get(client_id, {})
-    return sorted(entries.values(), key=lambda e: e.get("covered_at", ""), reverse=True)
-
-
-def mark_influencers_covered(client_id: str, influencers: list[dict]) -> None:
-    """Persist newly-suggested influencers (by handle/URL/name) as covered
-    for this client, so the next search knows to avoid repeating them."""
-    now = datetime.utcnow().isoformat()
-    entries = {}
-    for inf in influencers:
-        if not isinstance(inf, dict):
-            continue
-        identifier = (inf.get("handle") or inf.get("url") or inf.get("name") or "").strip()
-        if not identifier:
-            continue
-        key = _normalize_influencer_key(identifier)
-        entries[key] = {
-            "key": key,
-            "name": inf.get("name", ""),
-            "handle": inf.get("handle", ""),
-            "url": inf.get("url", ""),
-            "covered_at": now,
-        }
-    if not entries:
-        return
-
-    if db is not None:
-        try:
-            for key, entry in entries.items():
-                db.covered_influencers.update_one(
-                    {"client_id": client_id, "key": key},
-                    {"$set": {"client_id": client_id, **entry}},
-                    upsert=True,
-                )
-        except Exception as e:
-            logger.error(f"Failed to save covered influencers for '{client_id}' to MongoDB: {e}")
-
-    try:
-        data = _load_covered_influencers_file()
-        client_entries = data.get(client_id, {})
-        client_entries.update(entries)
-        data[client_id] = client_entries
-        COVERED_INFLUENCERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(COVERED_INFLUENCERS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-    except IOError as e:
-        logger.error(f"Failed to save {COVERED_INFLUENCERS_FILE}: {e}")
-
-
-# ── Marketing skill run history (persisted results, client-scoped) ──────
-# Mirrors the covered-influencers store above: a flat local JSON file keyed
-# by client_id, dual-written to MongoDB when configured. Runs not tied to any
-# client use the "_global" sentinel bucket (same convention as VoiceSample's
-# "id": "voice_sample" singleton sentinel).
-
-def _load_skill_runs_file() -> dict:
-    if SKILL_RUNS_FILE.exists():
-        try:
-            with open(SKILL_RUNS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if isinstance(data, dict):
-                return data
-        except (json.JSONDecodeError, IOError) as e:
-            logger.error(f"Could not read {SKILL_RUNS_FILE}: {e}")
-    return {}
-
-
-def load_skill_runs(client_id: str = "_global") -> list[dict]:
-    """This client's persisted marketing-skill run history, newest first."""
-    if db is not None:
-        try:
-            docs = list(
-                db.skill_runs.find({"client_id": client_id}, {"_id": 0})
-                .sort("created_at", -1)
-            )
-            if docs:
-                return docs
-        except Exception as e:
-            logger.error(f"Failed to load skill runs for '{client_id}' from MongoDB: {e}")
-
-    entries = _load_skill_runs_file().get(client_id, {})
-    return sorted(entries.values(), key=lambda e: e.get("created_at", ""), reverse=True)
-
-
-def save_skill_run(client_id: str, run: dict) -> None:
-    """Persist one completed marketing-skill run to both MongoDB and local
-    storage. `run` must include a unique 'id'."""
-    run_id = run.get("id")
-    if not run_id:
-        return
-    record = {**run, "client_id": client_id}
-
-    if db is not None:
-        try:
-            db.skill_runs.update_one(
-                {"client_id": client_id, "id": run_id},
-                {"$set": record},
-                upsert=True,
-            )
-        except Exception as e:
-            logger.error(f"Failed to save skill run for '{client_id}' to MongoDB: {e}")
-
-    try:
-        data = _load_skill_runs_file()
-        client_entries = data.get(client_id, {})
-        client_entries[run_id] = record
-        data[client_id] = client_entries
-        SKILL_RUNS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(SKILL_RUNS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-    except IOError as e:
-        logger.error(f"Failed to save {SKILL_RUNS_FILE}: {e}")

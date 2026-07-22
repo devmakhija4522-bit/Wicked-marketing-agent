@@ -1,7 +1,7 @@
 """
 WICKED Pydantic Models
-Data structures for the GMM/Grest content engine, Influencer Scout, and
-account-wide Voice Sample.
+Data structures for client account management and the account-wide
+Voice Sample backend.
 """
 
 from __future__ import annotations
@@ -98,45 +98,3 @@ class ReferenceProfileApproveRequest(BaseModel):
     url: str
     platform: str = "unknown"
     analysis: str
-
-
-# ── GMM Models (Grest Marketing Manager) ──────────────────────
-
-class GMMResearchRequest(BaseModel):
-    client_id: str
-    product_focus: Optional[str] = "General Brand Marketing"
-    viral_url: Optional[str] = ""
-
-class GMMResearchResponse(BaseModel):
-    news: str
-    hooks: str
-
-class GMMGenerateRequest(BaseModel):
-    client_id: str
-    product_focus: Optional[str] = "General Brand Marketing"
-    news: str
-    hooks: str
-
-class GMMGenerateResponse(BaseModel):
-    instagram_reel: str
-    youtube_video: str
-    facebook_post: str
-    image_prompt: str = ""
-
-class GMMBrandScrapeRequest(BaseModel):
-    website_url: str
-
-class GMMBrandScrapeResponse(BaseModel):
-    brand_name: str
-    tagline: str
-    category: str
-    target_audience: str
-    brand_voice: str
-
-
-# ── Marketing Skills (16 playbooks adapted from ai-marketing-skills) ──
-
-class MarketingSkillRunRequest(BaseModel):
-    skill_id: str
-    brief: str
-    client_id: Optional[str] = None  # None = account-wide run, not tied to a client

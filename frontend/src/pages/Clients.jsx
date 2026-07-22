@@ -1,33 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useClient } from '../context/ClientContext.jsx';
-import { api } from '../utils/api.js';
 
 export default function Clients() {
   const { clients, activeClient, switchClient, addClient, removeClient, loading } = useClient();
-  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '' });
-  const [websiteUrl, setWebsiteUrl] = useState('');
-  const [isScraping, setIsScraping] = useState(false);
-
-  const handleScrape = async () => {
-    if (!websiteUrl) return;
-    setIsScraping(true);
-    try {
-      const data = await api.scrapeBrand({ website_url: websiteUrl });
-      const newDesc = `${data.tagline}\n\nCategory: ${data.category}\nTarget Audience: ${data.target_audience}\nVoice: ${data.brand_voice}`;
-      setFormData({
-        name: data.brand_name || formData.name,
-        description: newDesc
-      });
-    } catch (err) {
-      alert("Failed to scrape brand DNA.");
-      console.error(err);
-    } finally {
-      setIsScraping(false);
-    }
-  };
 
   const handleAddSubmit = async (e) => {
     e.preventDefault();
@@ -40,11 +17,6 @@ export default function Clients() {
         // Keep modal open if save fails
       }
     }
-  };
-
-  const handleClientAction = (client) => {
-    switchClient(client.id);
-    navigate(`/gmm/${client.id}`);
   };
 
   return (
@@ -64,12 +36,14 @@ export default function Clients() {
           </div>
         )}
         {!loading && clients.map(client => (
-          <div 
-            key={client.id} 
+          <div
+            key={client.id}
             className={`glass-panel ${activeClient?.id === client.id ? 'active' : ''}`}
-            style={{ 
-              padding: '1.5rem', 
-              border: activeClient?.id === client.id ? '1px solid var(--accent-purple)' : '1px solid var(--border)' 
+            onClick={() => switchClient(client.id)}
+            style={{
+              padding: '1.5rem',
+              cursor: 'pointer',
+              border: activeClient?.id === client.id ? '1px solid var(--accent-purple)' : '1px solid var(--border)'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -96,12 +70,9 @@ export default function Clients() {
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem', marginTop: '0.5rem' }}>{client.tagline}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="badge badge-purple">{client.category}</span>
-              <button 
-                className="btn btn-sm btn-primary"
-                onClick={() => handleClientAction(client)}
-              >
-                Launch GMM Console →
-              </button>
+              {activeClient?.id === client.id && (
+                <span style={{ color: 'var(--accent-purple)', fontSize: '0.85rem', fontWeight: 600 }}>Active</span>
+              )}
             </div>
           </div>
         ))}
@@ -143,22 +114,6 @@ export default function Clients() {
         }}>
           <div className="glass-panel" style={{ padding: '2rem', width: '100%', maxWidth: '400px', border: '1px solid var(--accent-purple)' }}>
             <h2 style={{ marginTop: 0, marginBottom: '1.5rem' }}>Add New Client</h2>
-            <div style={{ marginBottom: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Auto-Fill via Website URL</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input 
-                  type="url" 
-                  className="glass-input" 
-                  placeholder="https://example.com"
-                  style={{ flex: 1, padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--border)', background: 'rgba(255,255,255,0.05)', color: 'white' }}
-                  value={websiteUrl}
-                  onChange={e => setWebsiteUrl(e.target.value)}
-                />
-                <button type="button" className="btn btn-sm btn-primary" onClick={handleScrape} disabled={isScraping || !websiteUrl}>
-                  {isScraping ? 'Scraping...' : 'Auto-Fill'}
-                </button>
-              </div>
-            </div>
             <form onSubmit={handleAddSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Client Name</label>

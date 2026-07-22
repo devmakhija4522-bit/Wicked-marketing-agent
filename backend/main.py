@@ -1,6 +1,7 @@
 """
 WICKED Backend — FastAPI Server
-Main entry point for the GMM/Grest content engine and Influencer Scout.
+Main entry point for client account management and the account-wide
+Voice Sample backend.
 """
 
 import logging
@@ -9,39 +10,30 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
 # Ensure the backend directory is on the path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_voice_sample, save_voice_sample, load_skill_runs, save_skill_run
+from config import settings, get_all_clients, load_client_profile, save_client_profile, delete_client_profile, load_brand_profile, load_content_templates, load_voice_sample, save_voice_sample
 from models import (
     ClientCreate,
     HealthResponse,
-    GMMResearchRequest,
-    GMMResearchResponse,
-    GMMGenerateRequest,
-    GMMGenerateResponse,
-    GMMBrandScrapeRequest,
-    GMMBrandScrapeResponse,
     VoiceSample,
     VoiceSampleUpdate,
     ReferenceProfileAnalyzeRequest,
     ReferenceProfileApproveRequest,
-    MarketingSkillRunRequest,
 )
-from agents.gmm_news_scout import GMMNewsScoutAgent
-from agents.gmm_hook_scout import GMMHookScoutAgent
-from agents.gmm_omni_writer import GMMOmniWriterAgent
-from agents.gmm_brand_scraper import GMMBrandScraperAgent
 from agents.instagram_script_writer import InstagramScriptWriterAgent
 from agents.reference_analyzer import ReferenceAnalyzerAgent
-from agents.marketing_skill_agent import MarketingSkillAgent
 from services.voice_categories import categories_for_api
-from services.marketing_skills import SKILLS, skills_for_api
 from services.news_service import NewsService
 from services.analytics_service import AnalyticsService
 from services.format_service import FormatService
@@ -73,6 +65,8 @@ async def lifespan(app: FastAPI):
     logger.info("YouTube API:    %s", "✅ Available" if settings.has_youtube else "⏭️  Skipped")
     logger.info("Reddit API:     %s", "✅ Available" if settings.has_reddit else "⏭️  Skipped")
     logger.info("Instagram API:  %s", "✅ Available" if settings.has_instagram else "⏭️  Skipped")
+    logger.info("API Key Auth:   %s", "✅ Enforced" if settings.api_key else "⏭️  Disabled (no API_KEY set)")
+    logger.info("Allowed Origins: %s", settings.allowed_origins)
     logger.info("=" * 60)
 
     if not settings.gemini_api_key:
@@ -88,18 +82,38 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="WICKED — AI Marketing Agent",
-    description=(
-        "Backend API for the WICKED marketing system: the GMM/Grest omni-channel "
-        "content engine and Influencer Scout."
-    ),
+    description="Backend API for the WICKED marketing system: client account management and the account-wide Voice Sample backend.",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# CORS for localhost frontend
+# ── Rate limiting (in-memory — no Redis needed at this scale) ─
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── API-key auth gate ──────────────────────────────────────────
+# Inert unless API_KEY is set (config.py) — see the plan/README note: this
+# ships disabled by default so an unconfigured deployment isn't locked out.
+_AUTH_EXEMPT_PATHS = {"/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"}
+
+@app.middleware("http")
+async def api_key_auth(request: Request, call_next):
+    if not settings.api_key:
+        return await call_next(request)
+    if request.method == "OPTIONS" or request.url.path in _AUTH_EXEMPT_PATHS:
+        return await call_next(request)
+    if request.headers.get("X-API-Key") != settings.api_key:
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key."})
+    return await call_next(request)
+
+app.add_middleware(SlowAPIMiddleware)
+
+# CORS — outermost middleware so preflight (OPTIONS) requests are always
+# answered correctly regardless of the auth/rate-limit layers above.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -137,7 +151,8 @@ async def get_dashboard_stats():
 # ── Instagram Scripts ─────────────────────────────────────────
 
 @app.get("/instagram/generate-script", tags=["Instagram"])
-async def generate_instagram_script():
+@limiter.limit("10/minute")
+async def generate_instagram_script(request: Request):
     """Fetch Apple news, pick a viral format, and generate a Reel script."""
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
@@ -189,14 +204,15 @@ async def update_voice_sample(update: VoiceSampleUpdate):
 
 
 @app.post("/api/voice-sample/analyze-reference", tags=["Voice Sample"])
-async def analyze_reference_reel(request: ReferenceProfileAnalyzeRequest, background_tasks: BackgroundTasks):
+@limiter.limit("10/minute")
+async def analyze_reference_reel(request: Request, body: ReferenceProfileAnalyzeRequest, background_tasks: BackgroundTasks):
     """Transcribe one reference reel and analyze its narrative pattern.
     Returns a job_id — poll GET /api/jobs/{job_id}. Nothing is saved yet;
     the frontend shows the analysis and the user Approves it separately
     via POST /api/voice-sample/approve-reference."""
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-    if not request.video_url.strip():
+    if not body.video_url.strip():
         raise HTTPException(status_code=400, detail="A video URL is required.")
 
     job_id = uuid.uuid4().hex[:12]
@@ -206,7 +222,7 @@ async def analyze_reference_reel(request: ReferenceProfileAnalyzeRequest, backgr
         try:
             background_jobs[job_id]["status"] = "running"
             agent = ReferenceAnalyzerAgent()
-            result = agent.analyze(request.video_url)
+            result = agent.analyze(body.video_url)
             background_jobs[job_id]["status"] = "completed"
             background_jobs[job_id]["result"] = result
         except Exception as e:
@@ -249,65 +265,6 @@ async def approve_reference_profile(request: ReferenceProfileApproveRequest):
     }
     save_voice_sample(record)
     return record
-
-
-# ── Marketing Skills (16 playbooks, account-wide Dashboard) ───
-
-@app.get("/api/marketing-skills", tags=["Marketing Skills"])
-async def get_marketing_skills():
-    """The 16 available skills (id/category/label/description/input_hint) —
-    same source of truth the runner agent reads its playbook text from."""
-    return skills_for_api()
-
-
-@app.post("/api/marketing-skills/run", tags=["Marketing Skills"])
-async def run_marketing_skill(request: MarketingSkillRunRequest, background_tasks: BackgroundTasks):
-    """Run one marketing skill against a free-text brief, optionally scoped
-    to a client for brand context. Returns a job_id — poll GET /api/jobs/{job_id}.
-    The result is also persisted to skill-run history regardless of whether
-    anyone is still polling."""
-    if request.skill_id not in SKILLS:
-        raise HTTPException(status_code=404, detail=f"Unknown skill '{request.skill_id}'.")
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
-    if not request.brief.strip():
-        raise HTTPException(status_code=400, detail="A brief is required.")
-
-    job_id = uuid.uuid4().hex[:12]
-    background_jobs[job_id] = {"status": "pending"}
-
-    def _do_skill_run():
-        try:
-            background_jobs[job_id]["status"] = "running"
-            agent = MarketingSkillAgent(client_id=request.client_id or "generic")
-            result = agent.run(request.skill_id, request.brief)
-
-            background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = {"markdown": result}
-
-            save_skill_run(request.client_id or "_global", {
-                "id": job_id,
-                "skill_id": request.skill_id,
-                "brief": request.brief,
-                "markdown": result,
-                "created_at": datetime.utcnow().isoformat(),
-            })
-        except Exception as e:
-            import traceback
-            with open("error.log", "a") as f:
-                f.write(traceback.format_exc() + "\n")
-            background_jobs[job_id]["status"] = "failed"
-            background_jobs[job_id]["error"] = str(e)
-
-    background_tasks.add_task(_do_skill_run)
-    return {"job_id": job_id}
-
-
-@app.get("/api/marketing-skills/history", tags=["Marketing Skills"])
-async def get_marketing_skills_history(client_id: Optional[str] = None):
-    """Past marketing-skill runs, newest first. Omit client_id for
-    account-wide (non-client-scoped) runs."""
-    return load_skill_runs(client_id or "_global")
 
 
 # ── Analytics ─────────────────────────────────────────────────
@@ -367,84 +324,6 @@ async def get_client(client_id: str):
 
 # ── GMM Endpoints ──────────────────────────────────────────────
 
-@app.post("/api/gmm/scrape-brand", response_model=GMMBrandScrapeResponse, tags=["GMM"])
-async def gmm_scrape_brand(request: GMMBrandScrapeRequest):
-    """Scrape a website and auto-fill Brand DNA."""
-    try:
-        scraper = GMMBrandScraperAgent()
-        result = scraper.run(website_url=request.website_url)
-        return GMMBrandScrapeResponse(
-            brand_name=result.get("brand_name", ""),
-            tagline=result.get("tagline", ""),
-            category=result.get("category", ""),
-            target_audience=result.get("target_audience", ""),
-            brand_voice=result.get("brand_voice", "")
-        )
-    except Exception as e:
-        import traceback
-        with open("error.log", "a") as f:
-            f.write(traceback.format_exc() + "\n")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/gmm/research", tags=["GMM"])
-async def gmm_research(request: GMMResearchRequest, background_tasks: BackgroundTasks):
-    """Run Phase 1: Research (News and Hooks)."""
-    job_id = uuid.uuid4().hex[:12]
-    background_jobs[job_id] = {"status": "pending"}
-
-    def _do_research():
-        try:
-            background_jobs[job_id]["status"] = "running"
-            news_agent = GMMNewsScoutAgent(client_id=request.client_id)
-            hook_agent = GMMHookScoutAgent(client_id=request.client_id)
-
-            news_output = news_agent.run(request.product_focus)
-            hook_output = hook_agent.run(request.product_focus, request.viral_url)
-
-            background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = {"news": news_output, "hooks": hook_output}
-        except Exception as e:
-            import traceback
-            with open("error.log", "a") as f:
-                f.write(traceback.format_exc() + "\n")
-            background_jobs[job_id]["status"] = "failed"
-            background_jobs[job_id]["error"] = str(e)
-
-    background_tasks.add_task(_do_research)
-    return {"job_id": job_id}
-
-@app.post("/api/gmm/generate", tags=["GMM"])
-async def gmm_generate(request: GMMGenerateRequest, background_tasks: BackgroundTasks):
-    """Run Phase 3: Omni-channel generation."""
-    job_id = uuid.uuid4().hex[:12]
-    background_jobs[job_id] = {"status": "pending"}
-
-    def _do_generate():
-        try:
-            background_jobs[job_id]["status"] = "running"
-            omni_agent = GMMOmniWriterAgent(client_id=request.client_id)
-            result = omni_agent.run(
-                product_focus=request.product_focus,
-                news_context=request.news,
-                hook_context=request.hooks
-            )
-            background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = {
-                "instagram_reel": result.get("instagram_reel", ""),
-                "youtube_video": result.get("youtube_video", ""),
-                "facebook_post": result.get("facebook_post", ""),
-                "image_prompt": result.get("image_prompt", "")
-            }
-        except Exception as e:
-            import traceback
-            with open("error.log", "a") as f:
-                f.write(traceback.format_exc() + "\n")
-            background_jobs[job_id]["status"] = "failed"
-            background_jobs[job_id]["error"] = str(e)
-
-    background_tasks.add_task(_do_generate)
-    return {"job_id": job_id}
-
 @app.get("/brand/profile", tags=["Brand"])
 async def get_brand_profile():
     """Get the fallback generic brand profile."""
@@ -457,50 +336,10 @@ async def get_content_templates():
     return load_content_templates()
 
 
-# ── Grest: Influencer Scout ────────────────────────────────────
-
-from pydantic import BaseModel
-class InfluencerSearchRequest(BaseModel):
-    platform: str = "YouTube and Instagram"
-    category: str = "Tech"
-    followerCount: str = "50k - 100k"
-    city: str = "India"
-
-from agents.grest_influencer_agent import GrestInfluencerAgent
-
-@app.post("/api/grest/influencer-search", response_model=dict, tags=["Grest"])
-async def grest_influencer_search(request: InfluencerSearchRequest, background_tasks: BackgroundTasks):
-    """Run the Grest Influencer Scout agent."""
-    job_id = uuid.uuid4().hex[:12]
-    background_jobs[job_id] = {"status": "pending"}
-
-    def _do_scout():
-        try:
-            background_jobs[job_id]["status"] = "running"
-            agent = GrestInfluencerAgent(client_id="grest")
-            result = agent.run({
-                "platform": request.platform,
-                "category": request.category,
-                "followerCount": request.followerCount,
-                "city": request.city
-            })
-
-            background_jobs[job_id]["status"] = "completed"
-            background_jobs[job_id]["result"] = {"draft": result}
-        except Exception as e:
-            import traceback
-            with open("error.log", "a") as f:
-                f.write(traceback.format_exc() + "\n")
-            background_jobs[job_id]["status"] = "failed"
-            background_jobs[job_id]["error"] = str(e)
-
-    background_tasks.add_task(_do_scout)
-    return {"job_id": job_id}
-
-
 @app.get("/api/jobs/{job_id}", tags=["Jobs"])
 async def get_job_status(job_id: str):
-    """Generic polling endpoint for background jobs."""
+    """Generic polling endpoint for background jobs — only Voice Sample's
+    analyze-reference flow uses this now."""
     if job_id not in background_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     return background_jobs[job_id]
