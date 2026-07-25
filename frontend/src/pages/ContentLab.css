@@ -1,6 +1,163 @@
-/* Content Lab Styles */
+/* ============================================
+   Content Lab — 2-Color AI Light Blue Glass
+   ============================================ */
+
 .content-lab-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
+  max-width: 1400px;
+  margin: 0 auto;
+  animation: fadeIn 350ms ease-out;
+}
+
+/* Page Header */
+.lab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.85), rgba(224, 242, 254, 0.7));
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: var(--radius-xl);
+  padding: 24px 32px;
+  box-shadow: 0 12px 36px rgba(14, 165, 233, 0.08);
+}
+
+.lab-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lab-title {
+  font-family: var(--font-ui);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.lab-subtitle {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+}
+
+/* Pipeline Stepper Header */
+.pipeline-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(240, 249, 255, 0.75);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px 24px;
+  gap: 12px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-base);
+  opacity: 0.6;
+}
+
+.step-item.active {
+  opacity: 1;
+  background: var(--gradient-ai);
+  color: #ffffff;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+}
+
+.step-item.completed {
+  opacity: 0.95;
+  color: var(--accent-cyan);
+}
+
+.step-icon {
+  font-size: 1.1rem;
+}
+
+.step-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.step-desc {
+  font-size: 0.68rem;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.step-arrow {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+/* Stage Card Content Container */
+.stage-panel {
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.85), rgba(224, 242, 254, 0.65));
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(14, 165, 233, 0.06);
+}
+
+.stage-title-group {
+  margin-bottom: 20px;
+}
+
+.stage-h2 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.stage-sub {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+/* Input Fields & Buttons */
+.input-cyber {
+  width: 100%;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  outline: none;
+  transition: var(--transition-base);
+}
+
+.input-cyber:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.2);
+}
+
+.concept-card-item {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.concept-card-item:hover, .concept-card-item.selected {
+  border-color: var(--accent-cyan);
+  background: rgba(224, 242, 254, 0.95);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.15);
 }

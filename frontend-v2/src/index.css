@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@import "@fontsource/sora/600.css";
+@import "@fontsource/sora/700.css";
+@import "@fontsource/sora/800.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+
+@theme {
+  /* Base */
+  --color-void: #0a0a12;
+  --color-void-raised: #100f1a;
+  --color-void-panel: #14131f;
+
+  /* Brand */
+  --color-crimson: #e94560;
+  --color-crimson-dim: #8f2c3d;
+  --color-cyan: #4ee1ff;
+  --color-violet: #9d6bff;
+
+  /* Status semantics: color + shape/text always pair with these, never color alone */
+  --color-status-running: #35e6b0;
+  --color-status-paused: #6b7280;
+  --color-status-error: #ff5c72;
+  --color-status-pending: #f5b942;
+
+  /* Text */
+  --color-ink: #eef0fb;
+  --color-ink-dim: #9498b3;
+  --color-ink-faint: #5c5f78;
+
+  --font-display: "Sora", "Segoe UI", sans-serif;
+  --font-data: "Inter", "Segoe UI", sans-serif;
+
+  --shadow-glow-crimson: 0 0 24px 0 rgba(233, 69, 96, 0.35);
+  --shadow-glow-cyan: 0 0 24px 0 rgba(78, 225, 255, 0.3);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-data);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  button {
+    font-family: inherit;
+  }
+
+  /* Visible, brand-colored focus ring everywhere — never suppressed */
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Neutral by rest, colored on purpose: brand color lives in hover glows
+     and status accents, not a permanent outline on every panel — keeps a
+     dense dashboard from reading as "everything is emphasized." */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 1px 0 rgba(0, 0, 0, 0.4),
+      0 12px 32px -8px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Primary/flagship surfaces — brighter edge, more separation from the page. */
+  .glass-panel--raised {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 1px 0 rgba(0, 0, 0, 0.4),
+      0 20px 48px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Nested wells (inputs, code blocks, log feeds) — recede instead of float. */
+  .glass-panel--recessed {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Crimson-edged liquid glass — for full-bleed marketing surfaces (hero
+     footer) sitting over video/imagery rather than the flat void
+     background, where the panel edge itself needs to read as brand. */
+  .liquid-glass {
+    background: rgba(255, 255, 255, 0.01);
+    background-blend-mode: luminosity;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: none;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .liquid-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.4px;
+    background: linear-gradient(
+      180deg,
+      rgba(233, 69, 96, 0.45) 0%,
+      rgba(233, 69, 96, 0.15) 20%,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0) 60%,
+      rgba(233, 69, 96, 0.15) 80%,
+      rgba(233, 69, 96, 0.45) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+::selection {
+  background: rgba(233, 69, 96, 0.35);
+  color: var(--color-ink);
+}

@@ -158,7 +158,7 @@ async def generate_instagram_script(request: Request):
         raise HTTPException(status_code=503, detail="GEMINI_API_KEY not configured.")
 
     # 1. Fetch latest news
-    news_items = NewsService.fetch_apple_news(limit=1)
+    news_items = NewsService.fetch_industry_news(query="Apple", limit=1)
     if not news_items:
         raise HTTPException(status_code=404, detail="No news found.")
     news = news_items[0]
