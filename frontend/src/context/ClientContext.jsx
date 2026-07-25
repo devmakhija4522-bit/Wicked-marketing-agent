@@ -8,7 +8,7 @@ export const useClient = () => useContext(ClientContext);
 export const ClientProvider = ({ children }) => {
   const [clients, setClients] = useState([]);
   const [activeClient, setActiveClient] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -17,26 +17,25 @@ export const ClientProvider = ({ children }) => {
   const fetchClients = async () => {
     try {
       const data = await api.getClients();
-      setClients(data);
-      
-      // Auto-restore active client from localStorage
-      const savedClientId = localStorage.getItem('activeClientId');
-      if (savedClientId) {
-        const found = data.find(c => c.id === savedClientId);
-        if (found) {
-          setActiveClient(found);
-        } else if (data.length > 0) {
-          // If saved client no longer exists, fall back to first
-          setActiveClient(data[0]);
-          localStorage.setItem('activeClientId', data[0].id);
+      if (data && data.length > 0) {
+        setClients(data);
+        const savedClientId = localStorage.getItem('activeClientId');
+        if (savedClientId) {
+          const found = data.find(c => c.id === savedClientId);
+          if (found) {
+            setActiveClient(found);
+            return;
+          }
         }
-      } else if (data.length > 0) {
-        // If no saved client, default to first
         setActiveClient(data[0]);
-        localStorage.setItem('activeClientId', data[0].id);
+      } else {
+        setClients([]);
+        setActiveClient(null);
       }
     } catch (error) {
       console.error("Failed to fetch clients:", error);
+      setClients([]);
+      setActiveClient(null);
     } finally {
       setLoading(false);
     }
@@ -54,7 +53,8 @@ export const ClientProvider = ({ children }) => {
     try {
       const newClient = await api.addClient(clientData);
       setClients(prev => [...prev, newClient]);
-      fetchClients(); // background sync
+      setActiveClient(newClient);
+      localStorage.setItem('activeClientId', newClient.id);
     } catch (error) {
       console.error("Failed to add client:", error);
       throw error;
@@ -64,12 +64,17 @@ export const ClientProvider = ({ children }) => {
   const removeClient = async (clientId) => {
     try {
       await api.deleteClient(clientId);
-      setClients(prev => prev.filter(c => c.id !== clientId));
+      const remaining = clients.filter(c => c.id !== clientId);
+      setClients(remaining);
       if (activeClient?.id === clientId) {
-        setActiveClient(null);
-        localStorage.removeItem('activeClientId');
+        const nextActive = remaining.length > 0 ? remaining[0] : null;
+        setActiveClient(nextActive);
+        if (nextActive) {
+          localStorage.setItem('activeClientId', nextActive.id);
+        } else {
+          localStorage.removeItem('activeClientId');
+        }
       }
-      fetchClients();
     } catch (error) {
       console.error("Failed to remove client:", error);
       throw error;
@@ -77,7 +82,17 @@ export const ClientProvider = ({ children }) => {
   };
 
   return (
-    <ClientContext.Provider value={{ clients, activeClient, switchClient, addClient, removeClient, refreshClients: fetchClients, loading }}>
+    <ClientContext.Provider value={{
+      clients,
+      activeClient,
+      currentClient: activeClient,
+      switchClient,
+      selectClient: switchClient,
+      addClient,
+      removeClient,
+      refreshClients: fetchClients,
+      loading
+    }}>
       {children}
     </ClientContext.Provider>
   );

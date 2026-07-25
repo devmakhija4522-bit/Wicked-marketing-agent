@@ -4,3 +4,7 @@ __pycache__/
 node_modules/
 dist/
 .DS_Store
+*.log
+.obsidian/
+.playwright-mcp/
+backend/agents/mcp_config.json

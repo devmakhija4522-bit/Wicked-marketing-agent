@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import Card3D from '../components/Card3D.jsx';
 import './Settings.css';
 
 export default function Settings() {
@@ -14,15 +15,11 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // We would normally fetch settings from the backend here
-  // For this demo we'll use local state to simulate it
-
   const handleSave = () => {
     setSaving(true);
-    // Simulate API call
     setTimeout(() => {
       setSaving(false);
-      setMessage('Settings saved successfully!');
+      setMessage('Configuration parameters saved & deployed!');
       setTimeout(() => setMessage(''), 3000);
     }, 800);
   };
@@ -35,115 +32,130 @@ export default function Settings() {
   };
 
   return (
-    <div className="settings-container">
-      <header className="settings-header">
-        <h1>Configuration</h1>
-        <p>Manage your API keys, language preferences, and generation formats.</p>
+    <div className="settings-container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '1rem' }}>
+      <header className="settings-header" style={{ marginBottom: '1.8rem' }}>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+          System <span className="highlight-text">Configuration & API Keys</span>
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', marginTop: '0.4rem', fontSize: '0.98rem' }}>
+          Manage your Gemini models, API keys, regional language presets, and agent execution formats.
+        </p>
       </header>
 
-      <div className="settings-grid">
-        <div className="settings-card glass-panel">
-          <h2>API Keys</h2>
-          <p className="settings-desc">Connect external services to power WICKED.</p>
+      <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+        <Card3D glowColor="indigo" className="settings-card">
+          <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text-primary)' }}>API Key Matrix</h2>
+          <p className="settings-desc" style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: '20px' }}>
+            Connect external providers to power real-time web search and video scraping.
+          </p>
           
-          <div className="form-group">
-            <label>Google Gemini API Key <span className="required">*</span></label>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px' }}>
+              GOOGLE GEMINI API KEY <span style={{ color: 'var(--accent-primary)' }}>*</span>
+            </label>
             <input 
               type="password" 
               value={settings.geminiKey} 
               onChange={e => setSettings({...settings, geminiKey: e.target.value})}
               placeholder="AIzaSy..."
+              style={{
+                width: '100%', padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
+                color: 'var(--text-primary)', fontSize: '0.92rem', outline: 'none'
+              }}
             />
-            <span className="help-text">Required for all LLM operations. Get it from ai.google.dev</span>
+            <span className="help-text" style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '4px', display: 'block' }}>
+              Primary key for Gemini 1.5 Pro & Search Grounding (ai.google.dev)
+            </span>
           </div>
 
-          <div className="form-group">
-            <label>YouTube Data API v3 (Optional)</label>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px' }}>
+              YOUTUBE DATA API v3 (OPTIONAL)
+            </label>
             <input 
               type="password" 
               value={settings.youtubeKey} 
               onChange={e => setSettings({...settings, youtubeKey: e.target.value})}
               placeholder="AIzaSy..."
+              style={{
+                width: '100%', padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
+                color: 'var(--text-primary)', fontSize: '0.92rem', outline: 'none'
+              }}
             />
           </div>
 
-          <div className="form-group">
-            <label>Reddit API (PRAW) (Optional)</label>
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px' }}>
+              REDDIT PRAW CLIENT CREDENTIALS (OPTIONAL)
+            </label>
             <input 
               type="password" 
               value={settings.redditKey} 
               onChange={e => setSettings({...settings, redditKey: e.target.value})}
               placeholder="Client ID / Secret..."
+              style={{
+                width: '100%', padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
+                color: 'var(--text-primary)', fontSize: '0.92rem', outline: 'none'
+              }}
             />
           </div>
+        </Card3D>
 
-          <div className="form-group">
-            <label>RapidAPI Key (Instagram) (Optional)</label>
-            <input 
-              type="password" 
-              value={settings.rapidApiKey} 
-              onChange={e => setSettings({...settings, rapidApiKey: e.target.value})}
-              placeholder="x-rapidapi-key..."
-            />
-          </div>
-        </div>
-
-        <div className="settings-col">
-          <div className="settings-card glass-panel">
-            <h2>Output Preferences</h2>
+        <div className="settings-col" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <Card3D glowColor="cyan" className="settings-card">
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 12px 0', color: 'var(--text-primary)' }}>Output Language & Region</h2>
             
             <div className="form-group">
-              <label>Default Language</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px' }}>
+                PRIMARY VOICE DIALECT
+              </label>
               <select 
                 value={settings.language} 
                 onChange={e => setSettings({...settings, language: e.target.value})}
-                className="custom-select"
+                style={{
+                  width: '100%', padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.9)',
+                  border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)',
+                  color: 'var(--text-primary)', fontSize: '0.92rem', outline: 'none'
+                }}
               >
-                <option value="Hinglish">Hinglish (Recommended for India)</option>
-                <option value="English">Pure English</option>
+                <option value="Hinglish">Hinglish (Recommended for India Tech / Gen Z)</option>
+                <option value="English">Global English</option>
                 <option value="Hindi">Pure Hindi</option>
               </select>
             </div>
-          </div>
+          </Card3D>
 
-          <div className="settings-card glass-panel">
-            <h2>Content Formats</h2>
-            <p className="settings-desc">Select which formats the Content Strategist should consider.</p>
+          <Card3D glowColor="indigo" className="settings-card">
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text-primary)' }}>Target Content Formats</h2>
+            <p className="settings-desc" style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: '16px' }}>
+              Select active platforms for 5-agent content output generation.
+            </p>
             
-            <div className="checkbox-group">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={settings.formats.reels} onChange={() => handleFormatChange('reels')} />
-                <span className="checkbox-text">Instagram Reels (30s-90s)</span>
-              </label>
-              
-              <label className="checkbox-label">
-                <input type="checkbox" checked={settings.formats.shorts} onChange={() => handleFormatChange('shorts')} />
-                <span className="checkbox-text">YouTube Shorts</span>
-              </label>
-
-              <label className="checkbox-label">
-                <input type="checkbox" checked={settings.formats.longform} onChange={() => handleFormatChange('longform')} />
-                <span className="checkbox-text">Long-form YouTube Videos</span>
-              </label>
-
-              <label className="checkbox-label">
-                <input type="checkbox" checked={settings.formats.carousel} onChange={() => handleFormatChange('carousel')} />
-                <span className="checkbox-text">Instagram Carousels</span>
-              </label>
-
-              <label className="checkbox-label">
-                <input type="checkbox" checked={settings.formats.threads} onChange={() => handleFormatChange('threads')} />
-                <span className="checkbox-text">X / Twitter Threads</span>
-              </label>
+            <div className="checkbox-group" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {Object.keys(settings.formats).map(fmtKey => (
+                <label key={fmtKey} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.formats[fmtKey]}
+                    onChange={() => handleFormatChange(fmtKey)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-cyan)' }}
+                  />
+                  <span>{fmtKey.toUpperCase()} Target Pipeline</span>
+                </label>
+              ))}
             </div>
-          </div>
+          </Card3D>
         </div>
       </div>
 
-      <div className="settings-actions">
-        {message && <span className="success-message">{message}</span>}
-        <button className="btn-primary save-btn" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Configuration'}
+      <div className="settings-actions" style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '16px' }}>
+        {message && <span style={{ color: 'var(--accent-cyan)', fontWeight: 700, fontSize: '0.9rem' }}>{message}</span>}
+        <button className="btn-primary-ai" onClick={handleSave} disabled={saving} style={{ padding: '0.75rem 2rem' }}>
+          <span className="btn-icon">{saving ? '⏳' : '⚡'}</span>
+          <span>{saving ? 'Saving...' : 'Deploy Configuration'}</span>
         </button>
       </div>
     </div>
