@@ -1,0 +1,103 @@
+.copy-polisher-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1120px;
+}
+
+.polisher-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+}
+
+.polisher-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+.polisher-card h3 {
+  margin-top: 0;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.action-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-mode {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-mode:hover {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+.scores-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-box {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-box span {
+  font-size: 0.75rem;
+  color: #64748b;
+
+}
+
+.metric-box strong {
+  font-size: 1.4rem;
+  color: #6366f1;
+}
+
+.rewrites-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rewrite-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #6366f1;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.rewrite-card h4 {
+  margin: 0 0 6px 0;
+  font-size: 0.85rem;
+  color: #6366f1;
+}
+
+.rewrite-card p {
+  margin: 0;
+  color: #0f172a;
+}

@@ -1,0 +1,90 @@
+.market-research-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1120px;
+}
+
+.research-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+}
+
+.research-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+.research-card h3 {
+  margin-top: 0;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.persona-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #6366f1;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.persona-card h4 {
+  margin-top: 0;
+  color: #6366f1;
+}
+
+.persona-card p {
+  color: #334155;
+  margin: 6px 0;
+  font-size: 0.88rem;
+}
+
+.points-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.point-item {
+  display: flex;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  border-radius: 10px;
+  align-items: flex-start;
+}
+
+.severity-badge {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.quote {
+  font-style: italic;
+  color: #64748b;
+  font-size: 0.85rem;
+  margin: 4px 0 0 0;
+}
+
+.hooks-block ul {
+  padding-left: 20px;
+  color: #0f172a;
+
+}
+
+.hooks-block li {
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}

@@ -33,6 +33,12 @@ from models import (
 )
 from agents.instagram_script_writer import InstagramScriptWriterAgent
 from agents.reference_analyzer import ReferenceAnalyzerAgent
+from agents.cro_auditor import CROAuditorAgent
+from agents.campaign_planner import CampaignPlannerAgent
+from agents.market_researcher import MarketResearcherAgent
+from agents.copy_polisher import CopyPolisherAgent
+from agents.cco_brand_governor import CCOBrandGovernorAgent
+from agents.influencer_scout import InfluencerScoutAgent
 from services.voice_categories import categories_for_api
 from services.news_service import NewsService
 from services.analytics_service import AnalyticsService
@@ -283,8 +289,8 @@ async def add_client(client_in: ClientCreate):
     client_data = {
         "id": client_id,
         "brand_name": client_in.name,
-        "tagline": client_in.description,
-        "category": "General",
+        "tagline": client_in.description or "Active Brand Account",
+        "category": "Brand Account",
         "createdAt": datetime.utcnow().isoformat()
     }
     save_client_profile(client_data)
@@ -343,6 +349,75 @@ async def get_job_status(job_id: str):
     if job_id not in background_jobs:
         raise HTTPException(status_code=404, detail="Job not found")
     return background_jobs[job_id]
+
+
+# ── Marketing Skills Endpoints ─────────────────────────────────
+
+@app.post("/api/skills/cro-audit", tags=["Skills"])
+async def run_cro_audit(payload: dict):
+    """Audit landing page copy for conversion optimization."""
+    page_content = payload.get("page_content", "")
+    if not page_content.strip():
+        raise HTTPException(status_code=400, detail="Page content is required.")
+    agent = CROAuditorAgent(client_id=payload.get("client_id", "generic"))
+    return agent.audit(page_content, payload.get("target_audience", ""))
+
+
+@app.post("/api/skills/campaign-plan", tags=["Skills"])
+async def run_campaign_plan(payload: dict):
+    """Generate a multi-channel launch campaign blueprint."""
+    goal = payload.get("goal", "")
+    if not goal.strip():
+        raise HTTPException(status_code=400, detail="Campaign goal is required.")
+    agent = CampaignPlannerAgent(client_id=payload.get("client_id", "generic"))
+    duration = payload.get("duration_days", 14)
+    channels = payload.get("channels", ["LinkedIn", "Instagram", "X/Twitter", "Email"])
+    return agent.plan_campaign(goal, duration, channels)
+
+
+@app.post("/api/skills/market-research", tags=["Skills"])
+async def run_market_research(payload: dict):
+    """Perform market and target audience pain-point research."""
+    topic = payload.get("topic", "")
+    if not topic.strip():
+        raise HTTPException(status_code=400, detail="Topic or niche is required.")
+    agent = MarketResearcherAgent(client_id=payload.get("client_id", "generic"))
+    return agent.research(topic)
+
+
+@app.post("/api/skills/copy-polish", tags=["Skills"])
+async def run_copy_polish(payload: dict):
+    """Polish copy for punchiness, urgency, or simplicity."""
+    text = payload.get("text", "")
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="Text is required.")
+    agent = CopyPolisherAgent(client_id=payload.get("client_id", "generic"))
+    mode = payload.get("mode", "punchy")
+    return agent.polish(text, mode)
+
+
+@app.post("/api/skills/cco-review", tags=["Skills"])
+async def run_cco_review(payload: dict):
+    """Chief Content Officer review for brand alignment and content balance."""
+    draft = payload.get("draft", "")
+    if not draft.strip():
+        raise HTTPException(status_code=400, detail="Draft content is required.")
+    agent = CCOBrandGovernorAgent(client_id=payload.get("client_id", "generic"))
+    channel = payload.get("channel", "General")
+    return agent.review_content(draft, channel)
+
+
+@app.post("/api/skills/influencer-scout", tags=["Skills"])
+async def run_influencer_scout(payload: dict):
+    """Scout authentic YouTube and Instagram creators based on niche & metrics."""
+    agent = InfluencerScoutAgent(client_id=payload.get("client_id", "generic"))
+    return agent.search_influencers(
+        platform=payload.get("platform", "YouTube and Instagram"),
+        category=payload.get("category", "Tech"),
+        follower_count=payload.get("follower_count", "50k - 100k"),
+        city=payload.get("city", "All India")
+    )
+
 
 # ══════════════════════════════════════════════════════════════
 #  RUN SERVER

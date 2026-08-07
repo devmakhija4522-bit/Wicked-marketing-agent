@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useClient } from '../context/ClientContext';
 import './AgentStatusHUD.css';
 
 export default function AgentStatusHUD() {
+  const navigate = useNavigate();
   const { currentClient, clients, switchClient } = useClient();
   const [isClientMenuOpen, setIsClientMenuOpen] = useState(false);
 
@@ -13,7 +15,26 @@ export default function AgentStatusHUD() {
           <span className="logo-spark">⚡</span>
           <span className="logo-text">WICKED</span>
         </div>
-        <span className="omni-pill">V2.4 AI MATRIX</span>
+
+        {/* Global Back / Forward Navigation Controls */}
+        <div className="nav-history-controls">
+          <button 
+            className="nav-btn" 
+            onClick={() => navigate(-1)} 
+            title="Go Back"
+          >
+            <span className="nav-icon">←</span>
+            <span>Back</span>
+          </button>
+          <button 
+            className="nav-btn" 
+            onClick={() => navigate(1)} 
+            title="Go Forward"
+          >
+            <span>Forward</span>
+            <span className="nav-icon">→</span>
+          </button>
+        </div>
       </div>
 
       <div className="hud-right">

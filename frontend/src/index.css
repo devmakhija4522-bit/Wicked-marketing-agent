@@ -64,6 +64,13 @@
   --border-light: rgba(56, 189, 248, 0.25);
   --border-accent: rgba(99, 102, 241, 0.3);
   --border-cyan: rgba(14, 165, 233, 0.35);
+  --border-cyber: var(--border-subtle);
+
+  /* ── Legacy alias fallbacks (pre-rebrand names still referenced in a few components) ── */
+  --bg-surface: rgba(248, 250, 252, 0.88);
+  --accent-emerald: var(--accent-cyan);
+  --gradient-crimson: var(--gradient-ai);
+  --font-display: var(--font-ui);
 
   /* ── Spacing ── */
   --space-xs: 4px;

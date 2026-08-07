@@ -1,0 +1,102 @@
+.brand-voice-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1120px;
+}
+
+.voice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+}
+
+.voice-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+
+.voice-card h3 {
+  margin-top: 0;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.form-group select {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 12px;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.verdict-banner {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 14px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.verdict-banner.approved {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #047857;
+}
+
+.verdict-banner.edits-needed {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #a16207;
+}
+
+.verdict-banner h4 {
+  margin: 0;
+}
+
+.verdict-banner p {
+  margin: 4px 0 0 0;
+  font-size: 0.85rem;
+}
+
+.metrics-grid {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card span {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.metric-card strong {
+  font-size: 1.1rem;
+  color: #6366f1;
+
+}
+
+.copy-box {
+  background: #f8fafc;
+  border: 1px dashed #6366f1;
+  padding: 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  color: #0f172a;
+}
