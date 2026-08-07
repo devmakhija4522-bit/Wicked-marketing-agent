@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 class ClientCreate(BaseModel):
     name: str
-    description: str
+    description: str = ""
 
 
 class HealthResponse(BaseModel):

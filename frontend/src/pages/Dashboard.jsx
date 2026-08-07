@@ -1,105 +1,110 @@
-import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useClient } from '../context/ClientContext';
 import Card3D from '../components/Card3D';
 import './Dashboard.css';
 
 export default function Dashboard() {
   const { currentClient } = useClient();
-  const [isRunningPipeline, setIsRunningPipeline] = useState(false);
 
-  const stats = [
-    { label: 'Active Trends Monitored', value: '0', change: 'Ready for Input', icon: '⚡', glow: 'indigo' },
-    { label: 'Omni Drafts Generated', value: '0', change: '0 Brand Matches', icon: '📝', glow: 'cyan' },
-    { label: 'Agent Virality Score', value: '0.0', change: 'Engine Standby', icon: '🎯', glow: 'ai' },
-    { label: 'Autonomous Loop Cycles', value: '0', change: 'Standby Mode', icon: '🔄', glow: 'indigo' }
+  const skills = [
+    {
+      title: 'CRO Auditor',
+      subtitle: 'Landing Page Conversion Optimization',
+      desc: 'Audit landing page copy, score conversion friction, and generate high-converting headline & CTA rewrites.',
+      icon: '🎯',
+      path: '/cro-auditor',
+      badge: 'HOT',
+      glow: 'cyan'
+    },
+    {
+      title: 'Campaign Planner',
+      subtitle: 'Multi-Channel Strategy Roadmap',
+      desc: 'Design 7 to 30-day multi-channel launch blueprints across LinkedIn, Instagram, X/Twitter, and Email.',
+      icon: '🎈',
+      path: '/campaign-planner',
+      badge: 'STRATEGY',
+      glow: 'indigo'
+    },
+    {
+      title: 'Market Detective',
+      subtitle: 'Audience & Competitor Intelligence',
+      desc: 'Extract customer pain points, viral hooks working right now, target persona profiles, and competitor gaps.',
+      icon: '🕵️‍♂️',
+      path: '/market-research',
+      badge: 'RESEARCH',
+      glow: 'ai'
+    },
+    {
+      title: 'Influencer Scout',
+      subtitle: 'Verified Creator Discovery',
+      desc: 'Discover authentic YouTube & Instagram creators with automated fake-follower and engagement checks.',
+      icon: '🌟',
+      path: '/influencer-scout',
+      badge: 'NEW',
+      glow: 'cyan'
+    },
+    {
+      title: 'Copy Polisher',
+      subtitle: 'Instant Copy & UX Enhancer',
+      desc: '1-click text rewrites for punchiness, urgency, simplicity, or premium brand positioning.',
+      icon: '✏️',
+      path: '/copy-polisher',
+      badge: 'ENHANCER',
+      glow: 'indigo'
+    },
+    {
+      title: 'CCO Voice Boss',
+      subtitle: 'Chief Content Officer Sign-Off',
+      desc: 'Audit draft posts for 100% brand voice alignment and editorial ratio balance before publishing.',
+      icon: '👮‍♂️',
+      path: '/brand-voice',
+      badge: 'GOVERNANCE',
+      glow: 'ai'
+    }
   ];
-
-  const handleRunPipeline = () => {
-    setIsRunningPipeline(true);
-    setTimeout(() => {
-      setIsRunningPipeline(false);
-    }, 2000);
-  };
 
   return (
     <div className="dashboard-container">
-      {/* Centered Floating Glass Bubbles Command Center */}
-      <section className="command-bubbles-wrapper">
-        {/* Bubble 1: Main Command Hero Bubble */}
+      {/* Centered Floating Glass Command Hero */}
+      <section className="command-hero-section">
         <Card3D className="command-hero-bubble" glowColor="cyan">
           <div className="hero-pill">
             <span className="hero-pill-dot"></span>
-            <span>AUTONOMOUS MARKETING MATRIX</span>
+            <span>AUTONOMOUS MARKETING AGENT ENGINE</span>
           </div>
           <h1 className="hero-heading">
             Marketing Command Center {currentClient ? <span>for <span className="highlight-text">{currentClient.brand_name || currentClient.name}</span></span> : ''}
           </h1>
           <p className="hero-subtext">
-            Orchestrate AI marketing campaigns, manage brand profiles, and generate platform-optimized content.
+            Orchestrate high-converting AI marketing campaigns, audit conversion friction, and scout verified creators.
           </p>
-          <div className="hero-actions">
-            <button 
-              className={`btn-primary-ai ${isRunningPipeline ? 'loading' : ''}`}
-              onClick={handleRunPipeline}
-              disabled={isRunningPipeline}
-            >
-              <span className="btn-icon">{isRunningPipeline ? '⏳' : '⚡'}</span>
-              <span>{isRunningPipeline ? 'Executing Engine...' : 'Trigger AI Engine'}</span>
-            </button>
-
-            <a href="/clients" className="btn-secondary-ai">
-              <span className="btn-icon">👥</span>
-              <span>Manage Brand Clients</span>
-            </a>
-          </div>
-        </Card3D>
-
-        {/* Bubble 2: Live Engine Telemetry Bubble */}
-        <Card3D className="telemetry-bubble" glowColor="indigo">
-          <div className="card-header-row">
-            <span className="card-title">LIVE ENGINE TELEMETRY</span>
-            <span className="live-tag">REALTIME</span>
-          </div>
-          <div className="telemetry-grid">
-            <div className="telemetry-item">
-              <span className="telemetry-label">Active Brand</span>
-              <span className="telemetry-val text-cyan">
-                {currentClient ? (currentClient.brand_name || currentClient.name) : 'None Selected'}
-              </span>
-            </div>
-            <div className="telemetry-item">
-              <span className="telemetry-label">Engine Mode</span>
-              <span className="telemetry-val text-indigo">Omni-Channel AI</span>
-            </div>
-            <div className="telemetry-item">
-              <span className="telemetry-label">Primary Source</span>
-              <span className="telemetry-val text-indigo">Gemini 1.5 + Web Search</span>
-            </div>
-            <div className="telemetry-item">
-              <span className="telemetry-label">Voice Confidence</span>
-              <span className="telemetry-val text-cyan">
-                {currentClient ? '98.4% Match' : 'Standby'}
-              </span>
-            </div>
-          </div>
-          <div className="telemetry-progress-bar">
-            <div className="progress-fill" style={{ width: currentClient ? '85%' : '0%' }}></div>
-          </div>
         </Card3D>
       </section>
 
-      {/* Metrics Row: Floating Glass Stat Bubbles */}
-      <section className="stats-row">
-        {stats.map((s, idx) => (
-          <Card3D key={idx} className="stat-bubble" glowColor={s.glow}>
-            <div className="stat-top">
-              <span className="stat-icon">{s.icon}</span>
-              <span className="stat-change">{s.change}</span>
-            </div>
-            <div className="stat-value">{s.value}</div>
-            <div className="stat-label">{s.label}</div>
-          </Card3D>
-        ))}
+      {/* Marketing Power Skills Suite Grid */}
+      <section className="skills-suite-section">
+        <div className="suite-header">
+          <h3>⚡ MARKETING POWER SKILLS</h3>
+          <p>Select a tool below to execute targeted marketing workflows</p>
+        </div>
+
+        <div className="skills-grid">
+          {skills.map((skill, idx) => (
+            <Card3D key={idx} className="skill-suite-card" glowColor={skill.glow}>
+              <div className="skill-card-top">
+                <span className="skill-icon">{skill.icon}</span>
+                {skill.badge && <span className="skill-badge">{skill.badge}</span>}
+              </div>
+              <h4 className="skill-title">{skill.title}</h4>
+              <span className="skill-subtitle">{skill.subtitle}</span>
+              <p className="skill-desc">{skill.desc}</p>
+              <Link to={skill.path} className="btn-launch-skill">
+                <span>Launch Tool</span>
+                <span className="arrow">→</span>
+              </Link>
+            </Card3D>
+          ))}
+        </div>
       </section>
     </div>
   );

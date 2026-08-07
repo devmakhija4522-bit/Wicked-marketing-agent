@@ -126,6 +126,43 @@ export const api = {
   // Analytics
   getAnalyticsSummary: (platform = 'All') =>
     apiRequest(`/analytics/summary?platform=${platform}`, { method: 'GET' }),
+
+  // 5 Core Marketing Skills
+  croAudit: (pageContent, targetAudience = '', clientId = 'generic') =>
+    apiRequest('/api/skills/cro-audit', {
+      method: 'POST',
+      body: { page_content: pageContent, target_audience: targetAudience, client_id: clientId },
+    }),
+
+  campaignPlan: (goal, durationDays = 14, channels = ['LinkedIn', 'Instagram', 'X/Twitter', 'Email'], clientId = 'generic') =>
+    apiRequest('/api/skills/campaign-plan', {
+      method: 'POST',
+      body: { goal, duration_days: durationDays, channels, client_id: clientId },
+    }),
+
+  marketResearch: (topic, clientId = 'generic') =>
+    apiRequest('/api/skills/market-research', {
+      method: 'POST',
+      body: { topic, client_id: clientId },
+    }),
+
+  copyPolish: (text, mode = 'punchy', clientId = 'generic') =>
+    apiRequest('/api/skills/copy-polish', {
+      method: 'POST',
+      body: { text, mode, client_id: clientId },
+    }),
+
+  ccoReview: (draft, channel = 'General', clientId = 'generic') =>
+    apiRequest('/api/skills/cco-review', {
+      method: 'POST',
+      body: { draft, channel, client_id: clientId },
+    }),
+
+  searchInfluencers: (criteria, clientId = 'generic') =>
+    apiRequest('/api/skills/influencer-scout', {
+      method: 'POST',
+      body: { ...criteria, client_id: clientId },
+    }),
 };
 
 export default api;

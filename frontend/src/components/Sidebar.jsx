@@ -8,6 +8,7 @@ const navSections = [
     items: [
       { path: '/', label: 'Command Center', icon: '🚀', badge: 'MAIN' },
       { path: '/clients', label: 'Brand Clients', icon: '👥', badge: 'PROFILES' },
+      { path: '/analytics', label: 'Analytics', icon: '📈' },
     ]
   }
 ];

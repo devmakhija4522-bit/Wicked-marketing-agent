@@ -9,6 +9,12 @@ import ContentLab from './pages/ContentLab.jsx';
 import StyleProfile from './pages/StyleProfile.jsx';
 import Settings from './pages/Settings.jsx';
 import Analytics from './pages/Analytics.jsx';
+import CROAuditor from './pages/CROAuditor.jsx';
+import CampaignPlanner from './pages/CampaignPlanner.jsx';
+import MarketResearch from './pages/MarketResearch.jsx';
+import CopyPolisher from './pages/CopyPolisher.jsx';
+import BrandVoiceManager from './pages/BrandVoiceManager.jsx';
+import InfluencerScout from './pages/InfluencerScout.jsx';
 
 export default function App() {
   return (
@@ -26,6 +32,12 @@ export default function App() {
               <Route path="/lab" element={<ContentLab />} />
               <Route path="/style" element={<StyleProfile />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/cro-auditor" element={<CROAuditor />} />
+              <Route path="/campaign-planner" element={<CampaignPlanner />} />
+              <Route path="/market-research" element={<MarketResearch />} />
+              <Route path="/influencer-scout" element={<InfluencerScout />} />
+              <Route path="/copy-polisher" element={<CopyPolisher />} />
+              <Route path="/brand-voice" element={<BrandVoiceManager />} />
             </Routes>
           </main>
         </div>
