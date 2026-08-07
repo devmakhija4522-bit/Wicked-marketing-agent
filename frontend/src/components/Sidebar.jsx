@@ -7,15 +7,12 @@ const navSections = [
     title: 'AGENCY MATRIX',
     items: [
       { path: '/', label: 'Command Center', icon: '🚀', badge: 'MAIN' },
-      { path: '/clients', label: 'Brand Clients', icon: '👥', badge: 'PROFILES' },
       { path: '/analytics', label: 'Analytics', icon: '📈' },
     ]
   }
 ];
 
 export default function Sidebar() {
-  const { currentClient } = useClient();
-
   return (
     <aside className="sidebar">
       <div className="sidebar-brand-box">
@@ -25,17 +22,6 @@ export default function Sidebar() {
         <div className="sidebar-brand-info">
           <span className="brand-title">WICKED</span>
           <span className="brand-tag">AI AGENT ENGINE</span>
-        </div>
-      </div>
-
-      <div className="active-client-card">
-        <div className="client-badge">
-          <span className="client-pulse"></span>
-          <span className="client-header">CURRENT BRAND</span>
-        </div>
-        <div className="client-name-row">
-          <span className="client-name">{currentClient ? (currentClient.brand_name || currentClient.name) : 'No Active Brand'}</span>
-          <span className="client-type">{currentClient ? (currentClient.category || currentClient.industry || 'Profile') : 'Unassigned'}</span>
         </div>
       </div>
 

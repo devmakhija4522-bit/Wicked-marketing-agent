@@ -73,7 +73,7 @@ export default function Dashboard() {
             <span>AUTONOMOUS MARKETING AGENT ENGINE</span>
           </div>
           <h1 className="hero-heading">
-            Marketing Command Center {currentClient ? <span>for <span className="highlight-text">{currentClient.brand_name || currentClient.name}</span></span> : ''}
+            Marketing Command Center
           </h1>
           <p className="hero-subtext">
             Orchestrate high-converting AI marketing campaigns, audit conversion friction, and scout verified creators.
