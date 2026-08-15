@@ -35,11 +35,77 @@
   font-size: 0.9rem;
 }
 
+.locked-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 2px 6px;
+  border-radius: 6px;
+  margin-left: 6px;
+}
+
+.locked-input-box {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 12px;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.results-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.results-header-actions h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.results-subhead {
+  margin: 4px 0 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.btn-excel-export {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-excel-export:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+}
+
 .creators-grid {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin-top: 16px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 .creator-item-card {
@@ -67,6 +133,7 @@
   justify-content: center;
   font-weight: 800;
   font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .creator-header h5 {
@@ -81,6 +148,13 @@
   color: #64748b;
 }
 
+.badge-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
 .stat-badge {
   display: inline-block;
   background: rgba(99, 102, 241, 0.1);
@@ -89,7 +163,16 @@
   border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 700;
-  margin-bottom: 8px;
+}
+
+.loc-badge {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .reasoning {
@@ -107,4 +190,11 @@
 
 .profile-link:hover {
   text-decoration: underline;
+}
+
+.loading-subtext {
+  display: block;
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-top: 4px;
 }

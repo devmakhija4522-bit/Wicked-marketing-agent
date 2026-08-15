@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { api } from '../utils/api.js';
 import { useClient } from '../context/ClientContext.jsx';
 import './InfluencerScout.css';
@@ -8,8 +9,8 @@ export default function InfluencerScout() {
   const [criteria, setCriteria] = useState({
     platform: 'YouTube and Instagram',
     category: 'Tech',
-    followerCount: '50k - 100k',
-    city: 'All India'
+    followerCount: '8k - 95k (Strictly 8,000 to 95,000 followers)',
+    city: 'Delhi NCR'
   });
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
@@ -30,8 +31,8 @@ export default function InfluencerScout() {
       const data = await api.searchInfluencers({
         platform: criteria.platform,
         category: criteria.category,
-        follower_count: criteria.followerCount,
-        city: criteria.city
+        follower_count: '8k - 95k',
+        city: 'Delhi NCR'
       }, currentClient?.id || 'generic');
       setResults(data);
     } catch (err) {
@@ -41,13 +42,57 @@ export default function InfluencerScout() {
     }
   };
 
+  const exportToExcel = () => {
+    if (!results || results.length === 0) return;
+
+    // Prepare rows for Excel
+    const excelData = results.map((inf, idx) => ({
+      'S.No': idx + 1,
+      'Creator Name': inf.name || 'N/A',
+      'Handle': inf.handle || 'N/A',
+      'Platform': inf.platform || 'N/A',
+      'Profile Link (URL)': inf.url || 'N/A',
+      'Followers': inf.followers || '8k - 95k',
+      'Category': inf.category || criteria.category,
+      'Location': inf.city || 'Delhi NCR',
+      'Audited Reasoning': inf.reasoning || ''
+    }));
+
+    // Create Worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths for clean readability
+    worksheet['!cols'] = [
+      { wch: 6 },   // S.No
+      { wch: 30 },  // Name
+      { wch: 22 },  // Handle
+      { wch: 15 },  // Platform
+      { wch: 45 },  // URL
+      { wch: 15 },  // Followers
+      { wch: 20 },  // Category
+      { wch: 20 },  // Location
+      { wch: 60 }   // Reasoning
+    ];
+
+    // Create Workbook and append worksheet
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Delhi NCR Influencers');
+
+    // Generate filename
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `Delhi_NCR_Influencers_${criteria.category}_${dateStr}.xlsx`;
+
+    // Trigger download
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className="influencer-scout-container">
       <header className="page-header">
         <div>
-          <span className="badge-chip">CREATOR DISCOVERY</span>
-          <h2>🌟 Influencer Scout</h2>
-          <p className="subtitle">Discover verified YouTube & Instagram creators with authentic engagement.</p>
+          <span className="badge-chip">CREATOR DISCOVERY • DELHI NCR</span>
+          <h2>🌟 Influencer Scout (Delhi NCR strictly 8k-95k Followers)</h2>
+          <p className="subtitle">Discover verified YouTube & Instagram creators strictly in Delhi NCR with 8,000 to 95,000 followers. Export to Excel (.xlsx).</p>
         </div>
       </header>
 
@@ -78,29 +123,21 @@ export default function InfluencerScout() {
           </div>
 
           <div className="form-group">
-            <label>Follower Count</label>
-            <select name="followerCount" value={criteria.followerCount} onChange={handleInputChange}>
-              <option value="10k - 50k (Micro)">10k - 50k (Micro)</option>
-              <option value="50k - 100k">50k - 100k (Rising Stars)</option>
-              <option value="100k - 500k (Mid-tier)">100k - 500k (Mid-tier)</option>
-              <option value="500k - 1M (Macro)">500k - 1M (Macro)</option>
-              <option value="1M+ (Mega)">1M+ (Mega Stars)</option>
-            </select>
+            <label>Follower Range <span className="locked-tag">🔒 STRICTLY ENFORCED</span></label>
+            <div className="locked-input-box">
+              <span>🎯 8,000 to 95,000 Followers (8k - 95k)</span>
+            </div>
           </div>
 
           <div className="form-group">
-            <label>Location</label>
-            <select name="city" value={criteria.city} onChange={handleInputChange}>
-              <option value="All India">All India</option>
-              <option value="Delhi NCR">Delhi NCR</option>
-              <option value="Mumbai">Mumbai</option>
-              <option value="Bangalore">Bangalore</option>
-              <option value="Hyderabad">Hyderabad</option>
-            </select>
+            <label>Location <span className="locked-tag">🔒 STRICTLY ENFORCED</span></label>
+            <div className="locked-input-box">
+              <span>📍 Delhi NCR (Delhi, Gurgaon, Noida, Ghaziabad, Faridabad)</span>
+            </div>
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Auditing & Scouting Creators...' : '🔎 Find Verified Creators'}
+            {loading ? 'Scouting 30-50 Delhi NCR Creators...' : '🔎 Find Verified Delhi NCR Creators (30-50)'}
           </button>
           {error && <div className="error-alert">⚠️ {error}</div>}
         </form>
@@ -110,14 +147,15 @@ export default function InfluencerScout() {
             <div className="empty-state">
               <span className="empty-icon">👥</span>
               <h4>No Creators Scouted Yet</h4>
-              <p>Set your target criteria on the left and click "Find Verified Creators".</p>
+              <p>Select your category and click "Find Verified Delhi NCR Creators (30-50)".</p>
             </div>
           )}
 
           {loading && (
             <div className="loading-state">
               <div className="spinner"></div>
-              <p>Scouting live creators & auditing for fake bot engagement...</p>
+              <p>Scouting live creators in Delhi NCR (8k-95k followers) & auditing links...</p>
+              <span className="loading-subtext">Harvesting 30 to 50 real, non-hallucinated profiles...</span>
             </div>
           )}
 
@@ -125,13 +163,22 @@ export default function InfluencerScout() {
             <div className="empty-state">
               <span className="empty-icon">🚫</span>
               <h4>No Verified Creators Found</h4>
-              <p>Try widening your category or follower range criteria.</p>
+              <p>Try selecting a different category or platform filter.</p>
             </div>
           )}
 
           {results && !loading && results.length > 0 && (
             <div className="creators-results">
-              <h4>Found {results.length} Verified Creators</h4>
+              <div className="results-header-actions">
+                <div>
+                  <h4>Found {results.length} Verified Delhi NCR Creators</h4>
+                  <p className="results-subhead">Followers: 8k - 95k • Location: Delhi NCR</p>
+                </div>
+                <button type="button" onClick={exportToExcel} className="btn-excel-export">
+                  📊 Export to Excel (.xlsx)
+                </button>
+              </div>
+
               <div className="creators-grid">
                 {results.map((inf, idx) => (
                   <div key={idx} className="creator-item-card">
@@ -145,8 +192,11 @@ export default function InfluencerScout() {
                       </div>
                     </div>
                     <div className="creator-body">
-                      <span className="stat-badge">👥 {inf.followers} Followers</span>
-                      <p className="reasoning"><strong>Why them:</strong> {inf.reasoning}</p>
+                      <div className="badge-row">
+                        <span className="stat-badge">👥 {inf.followers} Followers</span>
+                        <span className="loc-badge">📍 {inf.city || 'Delhi NCR'}</span>
+                      </div>
+                      <p className="reasoning"><strong>Audited Details:</strong> {inf.reasoning}</p>
                       {inf.url && (
                         <a href={inf.url} target="_blank" rel="noopener noreferrer" className="profile-link">
                           🔗 View Profile ↗

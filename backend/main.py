@@ -409,14 +409,15 @@ async def run_cco_review(payload: dict):
 
 @app.post("/api/skills/influencer-scout", tags=["Skills"])
 async def run_influencer_scout(payload: dict):
-    """Scout authentic YouTube and Instagram creators based on niche & metrics."""
+    """Scout authentic YouTube and Instagram creators in Delhi NCR (30-50 verified profiles)."""
     agent = InfluencerScoutAgent(client_id=payload.get("client_id", "generic"))
     return agent.search_influencers(
         platform=payload.get("platform", "YouTube and Instagram"),
         category=payload.get("category", "Tech"),
         follower_count=payload.get("follower_count", "50k - 100k"),
-        city=payload.get("city", "All India")
+        city="Delhi NCR"
     )
+
 
 
 # ══════════════════════════════════════════════════════════════
